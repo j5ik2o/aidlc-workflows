@@ -180,6 +180,12 @@ function runAdapter(
     ...process.env,
     AIDLC_PROJECT_DIR: projectDir,
     AIDLC_HARNESS_DIR: ".cursor",
+    // A developer shell's PAGER (e.g. PAGER=bat) leaks into the adapter's git
+    // pager-mode probe and correctly flips `git status` to "external command"
+    // -> deny. These tests assert the pager-LESS contract, so scrub it; a test
+    // can still pass its own PAGER/GIT_PAGER via options.env.
+    PAGER: undefined,
+    GIT_PAGER: undefined,
     ...options.env,
   };
   for (const [key, value] of Object.entries(env)) {

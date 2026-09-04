@@ -11,6 +11,7 @@ type ReviewerScopeRegistration =
   | "codex-hooks"
   | "copilot-hooks"
   | "cursor-hooks"
+  | "kimi-hooks"
   | "kiro-agent-json"
   | "opencode-plugin"
   | "unsupported";
@@ -121,6 +122,28 @@ const HARNESS_CAPABILITIES = {
     kiroAgentJson: false,
     ideAgentTools: false,
     reviewerScopeRegistration: "cursor-hooks",
+  },
+  kimi: {
+    harnessDir: ".kimi-code",
+    onboarding: {
+      mode: "manifest",
+      fills: "onboarding.fills.ts",
+      dist: "AGENTS.md",
+    },
+    rootFiles: [".gitignore", "AGENTS.md"],
+    skillsRoot: ".kimi-code/skills",
+    plugin: {
+      kind: "store",
+      manifestDir: ".kimi-code-plugin",
+      wiringFile: "hooks/hooks.json",
+    },
+    memoryInclude: "claude-import",
+    kiroAgentJson: false,
+    ideAgentTools: false,
+    // Kimi's hook payload carries no subagent identity, so reviewer-scope rides
+    // the global PreToolUse registration in hooks.snippet.toml (the codex
+    // global-registration pattern, not kiro's per-agent scoped one).
+    reviewerScopeRegistration: "kimi-hooks",
   },
   "kiro-ide": {
     harnessDir: ".kiro",

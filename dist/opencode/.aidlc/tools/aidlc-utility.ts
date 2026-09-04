@@ -2473,6 +2473,7 @@ function handleDoctor(projectDir: string, flags: Record<string, string> = {}): v
       );
     }
     if (harness === ".cursor") tsHooks.push("aidlc-cursor-adapter");
+    if (harness === ".kimi-code") tsHooks.push("aidlc-kimi-adapter");
     for (const h of tsHooks) {
       const hookPath = join(projectDir, harness, "hooks", `${h}.ts`);
       results.push({
@@ -2694,6 +2695,56 @@ function handleDoctor(projectDir: string, flags: Record<string, string> = {}): v
         fix: `copy from \`${from}\``,
       });
     }
+  } else if (harness === ".kimi-code") {
+    // Kimi Code: the adapter ships in the project tree; the hook wiring is a
+    // TOML snippet the user appends to the USER-level Kimi config once per
+    // machine ($KIMI_CODE_HOME/config.toml, default ~/.kimi-code/config.toml).
+    results.push({
+      pass: existsSync(join(projectDir, harness, "hooks", "aidlc-kimi-adapter.ts")),
+      label: "hooks/aidlc-kimi-adapter.ts present (hook adapter)",
+      fix: "copy from `dist/kimi/.kimi-code/hooks/aidlc-kimi-adapter.ts`",
+    });
+    results.push({
+      pass: existsSync(join(projectDir, harness, "hooks.snippet.toml")),
+      label: "hooks.snippet.toml present (hook wiring snippet)",
+      fix: "copy from `dist/kimi/.kimi-code/hooks.snippet.toml`",
+    });
+    // Absent user config or missing adapter references is ADVISORY (warn, not
+    // fail): the snippet append is a one-time per-machine step the doctor can
+    // only point at, not perform.
+    const kimiConfigPath = join(
+      process.env.KIMI_CODE_HOME ?? join(process.env.HOME ?? "", ".kimi-code"),
+      "config.toml",
+    );
+    if (!existsSync(kimiConfigPath)) {
+      results.push({
+        pass: true,
+        label: `${kimiConfigPath} absent — append .kimi-code/hooks.snippet.toml to the user-level Kimi config to wire the hooks`,
+      });
+    } else if (!readFileSync(kimiConfigPath, "utf-8").includes("aidlc-kimi-adapter")) {
+      results.push({
+        pass: true,
+        label: `${kimiConfigPath} wires no aidlc-kimi-adapter hooks — append .kimi-code/hooks.snippet.toml to it`,
+      });
+    } else {
+      results.push({
+        pass: true,
+        label: `${kimiConfigPath} wires aidlc-kimi-adapter (hook wiring)`,
+      });
+    }
+    // No verified Kimi Code version floor in the repo — presence-check only,
+    // warn-only when missing (mirrors the copilot CLI advisory branch).
+    const kimiBin = Bun.which("kimi");
+    const kimiVer = kimiBin
+      ? Bun.spawnSync([kimiBin, "--version"], { stdout: "pipe", stderr: "ignore" })
+      : null;
+    const kimiVerText = (kimiVer?.stdout?.toString() ?? "").trim().split("\n")[0];
+    results.push({
+      pass: true,
+      label: kimiVerText
+        ? `kimi CLI on PATH (${kimiVerText})`
+        : "kimi CLI not on PATH — install Kimi Code to run this harness",
+    });
   } else if (harness === ".aidlc") {
     // opencode: the wiring config is the project-root opencode.json/jsonc
     // (permissions + the method-include instructions glob) plus the /aidlc
@@ -2722,7 +2773,7 @@ function handleDoctor(projectDir: string, flags: Record<string, string> = {}): v
   // 4b. Dual-harness coexistence (D-11): another harness tree installed AND a
   // workflow active is supported-but-untested — warn (advisory pass with a
   // visible label), never block.
-  const otherTrees = [".claude", ".kiro", ".codex", ".aidlc", ".cursor"].filter(
+  const otherTrees = [".claude", ".kiro", ".codex", ".aidlc", ".cursor", ".kimi-code"].filter(
     (h) => h !== harness && existsSync(join(projectDir, h, "tools", "aidlc-lib.ts")),
   );
   if (

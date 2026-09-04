@@ -44,7 +44,7 @@ const coreHooksDir = authoredCoreHooksDir ?? join(REPO_ROOT, "dist", "claude", "
 let materializedAdapterRoot: string | null = null;
 
 function materializedAdapterPath(
-  harnessName: "kiro" | "kiro-ide" | "codex" | "cursor",
+  harnessName: "kiro" | "kiro-ide" | "codex" | "cursor" | "kimi",
   fileName: string,
 ): string {
   if (materializedAdapterRoot === null) {
@@ -80,6 +80,10 @@ function adapterSubjects(): Subject[] {
         name: "cursor adapter",
         path: materializedAdapterPath("cursor", "aidlc-cursor-adapter.ts"),
       },
+      {
+        name: "kimi adapter",
+        path: materializedAdapterPath("kimi", "aidlc-kimi-adapter.ts"),
+      },
     ];
   }
   return [
@@ -98,6 +102,10 @@ function adapterSubjects(): Subject[] {
     {
       name: "cursor adapter",
       path: join(REPO_ROOT, "dist", "cursor", ".cursor", "hooks", "aidlc-cursor-adapter.ts"),
+    },
+    {
+      name: "kimi adapter",
+      path: join(REPO_ROOT, "dist", "kimi", ".kimi-code", "hooks", "aidlc-kimi-adapter.ts"),
     },
   ];
 }

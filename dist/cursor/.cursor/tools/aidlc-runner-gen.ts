@@ -606,6 +606,9 @@ export function renderRunner(scope: string, description: string): string {
     if (harnessName === "copilot") {
       return "start a new Copilot CLI session or open a new VS Code agent chat";
     }
+    if (harnessName === "kimi") {
+      return "run `/new` in the Kimi Code TUI (or restart `kimi`)";
+    }
     if (harnessName === "cursor") return "start a new Cursor chat session";
     if (activeHarnessDir === ".claude") return "use `/clear` (or restart Claude Code)";
     if (activeHarnessDir === ".codex") return "exit or restart Codex CLI and start a new session";

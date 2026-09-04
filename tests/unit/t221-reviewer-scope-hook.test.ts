@@ -736,6 +736,31 @@ describe("t221 (c) harness registration and protocol prose", () => {
     }
   });
 
+  test("Kimi hooks.snippet.toml wires the adapter's reviewer-scope target on PreToolUse", () => {
+    // Kimi registers hooks only in the USER-level ~/.kimi-code/config.toml, so
+    // the wiring lives in the shipped append-snippet. Kimi's hook payload
+    // carries no subagent identity, so reviewer-scope rides the GLOBAL
+    // PreToolUse registration (the codex pattern, not kiro's per-agent scoped
+    // one) and fails open until Kimi delivers agent identity.
+    const harnesses = HARNESS_MATRIX.filter(
+      (harness) => harness.capabilities.reviewerScopeRegistration === "kimi-hooks",
+    );
+    expect(harnesses.length).toBeGreaterThan(0);
+    for (const harness of harnesses) {
+      const snippet = readFileSync(
+        join(harness.engineRoot, "hooks.snippet.toml"),
+        "utf-8",
+      );
+      const command = `bun ${harness.manifest.harnessDir}/hooks/aidlc-kimi-adapter.ts reviewer-scope`;
+      const entry = snippet.match(
+        /\[\[hooks\]\]\s*\nevent = "PreToolUse"\s*\nmatcher = "([^"]+)"\s*\ncommand = "([^"]+)"/g,
+      ) ?? [];
+      const hit = entry.find((e) => e.includes(command));
+      expect(hit, harness.name).toBeDefined();
+      expect(hit).toContain('matcher = "Read|Edit|Write|Glob|Grep|Bash"');
+    }
+  });
+
   test("Cursor hooks.json wires the adapter's guards target on preToolUse", () => {
     const harnesses = HARNESS_MATRIX.filter(
       (harness) => harness.capabilities.reviewerScopeRegistration === "cursor-hooks",

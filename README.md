@@ -6,12 +6,12 @@ AI-DLC Workflows 2.0 is **GA** on this repository's default `main` branch. Use
 `main` for new installations and upgrades. It turns AI agents into verifiable,
 self-correcting engineering workflows from one harness-neutral core rendered
 natively across Claude Code, Kiro IDE, Kiro CLI, Codex CLI, Cursor, opencode,
-and GitHub Copilot.
+GitHub Copilot, and Kimi Code.
 
 > [!NOTE]
 > Interfaces, stage definitions, the agent roster, and the install model are stable, but we will continue to optimize based on feedback; pin a known-good version for anything you depend on, and review all generated output before you act on it. See the [roadmap](https://awslabs.github.io/aidlc-workflows/roadmap.html) for what's shipped, in flight, and planned.
 
-A native implementation of the **AI-DLC methodology** (AI-Driven Development Life Cycle) that runs on **many harnesses from one source of truth** — today Claude Code, Kiro IDE, Kiro CLI, Codex CLI, Cursor, opencode, and GitHub Copilot, and any capable harness you port it to. Run a full software-development lifecycle with a 14-agent roster — 11 domain experts, 2 review-only agents, and the adaptive-workflows composer — working through a 33-stage workflow, with you approving every gate.
+A native implementation of the **AI-DLC methodology** (AI-Driven Development Life Cycle) that runs on **many harnesses from one source of truth** — today Claude Code, Kiro IDE, Kiro CLI, Codex CLI, Cursor, opencode, GitHub Copilot, and Kimi Code, and any capable harness you port it to. Run a full software-development lifecycle with a 14-agent roster — 11 domain experts, 2 review-only agents, and the adaptive-workflows composer — working through a 33-stage workflow, with you approving every gate.
 
 The methodology lives once, in a harness-neutral `core/`; each harness adds a thin surface that decides how it shows up on that harness. So you edit the methodology in one place, and every harness distribution is generated from it — no harness gets special treatment. (See [Repository layout](#repository-layout) for how the pieces fit together.)
 
@@ -24,6 +24,7 @@ The methodology lives once, in a harness-neutral `core/`; each harness adds a th
 ![Cursor](https://img.shields.io/badge/harness-Cursor-orange)
 ![opencode](https://img.shields.io/badge/harness-opencode-orange)
 ![GitHub Copilot](https://img.shields.io/badge/harness-GitHub%20Copilot-orange)
+![Kimi Code](https://img.shields.io/badge/harness-Kimi%20Code-orange)
 
 > [!NOTE]
 > This implementation realizes the autonomous software development vision, the core principles, and the architecture specified in the [AI-DLC Workflows 2.0 Specification](https://github.com/awslabs/aidlc-workflows/blob/main/assets/AI-DLC-Workflows-2.0-Specification.pdf) whitepaper, rendered natively across multiple CLI harnesses from one source.
@@ -53,7 +54,7 @@ Ad-hoc AI coding works until the project gets real. Then context drifts between 
 
 ## Methodology and implementation
 
-**AI-DLC is a methodology** — a structured, gated approach to AI-driven software development, defined by AWS (see the [blog post](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/) and [method paper](https://prod.d13rzhkk8cj2z0.amplifyapp.com/) under [References](#references)). **This repository is its native, multi-harness implementation** — the methodology rendered as skills, agents, hooks, and tools from one harness-neutral `core/`, so it runs natively inside Claude Code, Kiro IDE, Kiro CLI, Codex CLI, Cursor, opencode, GitHub Copilot, or any capable harness you port it to. The methodology is the *what*; each harness distribution is the *how* for one runtime, and every distribution is generated from the same source.
+**AI-DLC is a methodology** — a structured, gated approach to AI-driven software development, defined by AWS (see the [blog post](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/) and [method paper](https://prod.d13rzhkk8cj2z0.amplifyapp.com/) under [References](#references)). **This repository is its native, multi-harness implementation** — the methodology rendered as skills, agents, hooks, and tools from one harness-neutral `core/`, so it runs natively inside Claude Code, Kiro IDE, Kiro CLI, Codex CLI, Cursor, opencode, GitHub Copilot, Kimi Code, or any capable harness you port it to. The methodology is the *what*; each harness distribution is the *how* for one runtime, and every distribution is generated from the same source.
 
 ## Pick your harness
 
@@ -66,6 +67,7 @@ Ad-hoc AI coding works until the project gets real. Then context drifts between 
 | **Cursor** | `bun dist/cursor/install.ts <project>` | `/aidlc` | [Quick Start](#quick-start) below + [AI-DLC on Cursor](docs/guide/harnesses/cursor.md). |
 | **opencode** (≥ 1.17) | `dist/opencode/` → `<project>/` (`.aidlc/` + `.opencode/` + `aidlc/` + `opencode.json` + `AGENTS.md`) | `/aidlc` | [Quick Start](#quick-start) below + [AI-DLC on opencode](docs/guide/harnesses/opencode.md). |
 | **GitHub Copilot** (CLI ≥ 1.0.74 / VS Code ≥ 1.130) | `dist/copilot/` → `<project>/` (`.aidlc/` + `aidlc/` + `AGENTS.md`; MERGE `.github/`) | `/aidlc` | [Quick Start](#quick-start) below + [AI-DLC on GitHub Copilot](docs/guide/harnesses/copilot.md). |
+| **Kimi Code** | `dist/kimi/` → `<project>/` (`.kimi-code/` + `aidlc/` + `AGENTS.md`; then append `.kimi-code/hooks.snippet.toml` to `~/.kimi-code/config.toml` once) | `/skill:aidlc` | [AI-DLC on Kimi Code](docs/guide/harnesses/kimi-code.md). |
 
 The deterministic engine — state machine, audit log, and the referee that coordinates parallel agents — is byte-identical across every harness; only the shell differs. Each section in the [Quick Start](#quick-start) installs one harness end to end, and its guide above goes deeper on prerequisites and differences.
 
@@ -104,7 +106,7 @@ On Windows, use *either* PowerShell *or* CMD, not both — your prompt shows `PS
 
 Model-provider setup is harness-specific. The shipped Claude Code configuration
 uses **AWS Bedrock**; GitHub Copilot uses GitHub sign-in or BYOK; Kiro, Cursor,
-Codex, and opencode use the provider and credentials configured in their own
+Codex, opencode, and Kimi Code use the provider and credentials configured in their own
 runtime. Each harness section below has the specifics.
 
 ### Get the code
@@ -393,7 +395,8 @@ aidlc-claude/
 │   ├── codex/                  #   manifest.ts · emit.ts (Codex-only emissions) · orchestrator · hooks adapter
 │   ├── cursor/                 #   manifest.ts · orchestrator · hooks adapter · installer · rules · onboarding fills
 │   ├── opencode/               #   manifest.ts · emit.ts · orchestrator · /aidlc command · adapter plugin
-│   └── copilot/                #   manifest.ts · emit.ts · orchestrator skill · hooks adapter
+│   ├── copilot/                #   manifest.ts · emit.ts · orchestrator skill · hooks adapter
+│   └── kimi/                   #   manifest.ts · orchestrator · hooks adapter + hooks.snippet.toml · onboarding fills
 │
 ├── plugins/                    # optional, owned AIDLC plugins — new stages + the additive contribution seam
 │   └── test-pro/               #   reference fixture: .aidlc-plugin/plugin.json · stages/ · contributions/ · sensors/ · tools/ · tests/
@@ -413,7 +416,8 @@ aidlc-claude/
 │   ├── cursor/{AGENTS.md, aidlc/, .cursor/}   # what Cursor IDE/CLI users install
 │   ├── opencode/{AGENTS.md, .aidlc/, .opencode/}  # what opencode users copy
 │   ├── copilot/{AGENTS.md, .aidlc/, .github/}     # what GitHub Copilot users copy
-│   └── plugins/<name>/{claude,codex,copilot,cursor,kiro,kiro-ide,opencode}/  # one real host plugin per harness — install alongside dist/<harness>/
+│   ├── kimi/{AGENTS.md, .kimi-code/}              # what Kimi Code users copy
+│   └── plugins/<name>/{claude,codex,copilot,cursor,kimi,kiro,kiro-ide,opencode}/  # one real host plugin per harness — install alongside dist/<harness>/
 │
 │  ─────────── SUPPORTING ───────────
 ├── tests/                      # all-TypeScript suite (t*.test.ts) — resolves dist via AIDLC_SRC

@@ -72,11 +72,11 @@ function* walkMd(dir: string): Generator<string> {
   }
 }
 
-// Raw harness-dir path literals: `.claude/`, `.kiro/`, `.codex/` followed by a
-// known core subdir name (the form the token replaces). Bare `.claude/` (e.g.
-// inside a `(.claude/, .kiro/, .codex/)` enumeration) is matched too, then
-// filtered by the carve-out predicate.
-const HARNESS_PATH_RE = /\.(claude|kiro|codex)\//;
+// Raw harness-dir path literals: `.claude/`, `.kiro/`, `.codex/`, `.kimi-code/`
+// followed by a known core subdir name (the form the token replaces). Bare
+// `.claude/` (e.g. inside a `(.claude/, .kiro/, .codex/)` enumeration) is
+// matched too, then filtered by the carve-out predicate.
+const HARNESS_PATH_RE = /\.(claude|kiro|codex|kimi-code)\//;
 
 describe("t146 core hygiene — no stray harness-dir path literals in core/ prose", () => {
   test("every harness-dir path literal in core/*.md is the {{HARNESS_DIR}} token or a named carve-out", () => {

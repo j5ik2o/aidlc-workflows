@@ -899,6 +899,10 @@ describe("mechanismsOf is body-derived (milestone 3)", () => {
     // t328 drives the shipped log, human-turn, and begin CLIs so protected
     // challenge/response receipts and cross-process lock ordering are genuine.
     "unit/t328-plan-approval-runtime-authority.test.ts",
+    // t331 spawns the shipped kimi hook adapter as a subprocess because the
+    // payload-conversion contract under test is the process's stdin/stdout
+    // boundary, not an in-process function call.
+    "unit/t331-kimi-hook-adapter.test.ts",
     "integration/t102.test.ts",
     "integration/t104.test.ts",
     "integration/t105.test.ts",

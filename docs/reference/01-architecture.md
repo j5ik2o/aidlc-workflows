@@ -252,7 +252,8 @@ sequenceDiagram
 ## Source vs distribution (one core, many harnesses)
 
 The framework is **authored once and generated per harness** — today Claude
-Code, Kiro CLI, Kiro IDE, Codex CLI, Cursor, opencode, and GitHub Copilot, and
+Code, Kiro CLI, Kiro IDE, Codex CLI, Cursor, opencode, GitHub Copilot, and Kimi
+Code, and
 any capable CLI you port it to. The
 hand-authored source is a harness-neutral `core/` plus a thin `harness/<name>/`
 surface per CLI; `bun scripts/package.ts` regenerates the committed,
@@ -272,7 +273,8 @@ scripts/build-binaries.ts # release-only binary compiler + smoke gate, writing
                        #   under ignored build/binaries/
 dist/<harness>/        # GENERATED + committed: claude/.claude, kiro/.kiro,
                        #   kiro-ide/.kiro, codex/{.codex,.agents},
-                       #   opencode/{.aidlc,.opencode}, copilot/{.aidlc,.github} — never hand-edited
+                       #   opencode/{.aidlc,.opencode}, copilot/{.aidlc,.github},
+                       #   kimi/.kimi-code — never hand-edited
 ```
 
 `core/` `.ts` is byte-copied untransformed; the runtime `harnessDir()` seam
@@ -464,7 +466,8 @@ selected space when choosing the bare space root. Switching spaces with
 `/aidlc space <name>` also
 re-points each harness-native rule include (the Claude `@`-import stub described
 above, Kiro CLI resources or IDE steering, Codex's rules dir, opencode's
-`instructions` glob, and Copilot's `AGENTS.md` `@`-imports) at the switched space's
+`instructions` glob, Copilot's `AGENTS.md` `@`-imports, and Kimi Code's
+`AGENTS.md` prose reference — Kimi has no import mechanism) at the switched space's
 `memory/`. At `default` the re-point is a byte-identical no-op, so a single-team
 committed tree never churns. SessionStart uses the resolved session space for
 that re-point, but the include remains one checkout-global mutable surface:
