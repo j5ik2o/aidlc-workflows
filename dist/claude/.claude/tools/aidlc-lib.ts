@@ -185,7 +185,7 @@ export const PHASE_NUMBERS: Record<string, Phase> = {
 // dev-repo CWD rung, where more than one harness dir can coexist and the Claude
 // tree is canonical (".claude" must win). A real single-harness install never
 // reaches the probe; it resolves by script path.
-export const KNOWN_HARNESS_DIRS = [".claude", ".kiro", ".codex", ".aidlc", ".cursor"] as const;
+export const KNOWN_HARNESS_DIRS = [".claude", ".kiro", ".codex", ".aidlc", ".cursor", ".kimi-code"] as const;
 
 // True for a plausible harness dir name: a dot-prefixed segment, e.g. ".claude"
 // / ".kiro" / ".gemini". Guards the script-path derivation so an unexpected
@@ -5326,6 +5326,7 @@ function installedHarnessNameForTarget(target: ActiveDirectiveTarget): string | 
     const dir = harnessDir();
     if (dir === ".aidlc") return "opencode";
     if (dir === ".kiro") return "kiro";
+    if (dir === ".kimi-code") return "kimi";
     return /^\.[a-z0-9][a-z0-9._-]*$/i.test(dir) ? dir.slice(1) : null;
   }
 }

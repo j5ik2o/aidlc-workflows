@@ -49,6 +49,18 @@
       "install.ts"
     ]
   },
+  "kimi": {
+    "harnessName": "kimi",
+    "manifestDir": ".kimi-code-plugin",
+    "harnessLeaf": ".kimi-code",
+    "kind": "store",
+    "installRoots": [
+      ".gitignore",
+      ".kimi-code",
+      "AGENTS.md",
+      "aidlc"
+    ]
+  },
   "kiro": {
     "harnessName": "kiro",
     "manifestDir": ".kiro-plugin",

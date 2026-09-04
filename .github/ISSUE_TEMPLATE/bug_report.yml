@@ -92,6 +92,7 @@ body:
         - Cursor
         - opencode
         - GitHub Copilot
+        - Kimi Code
         - Other
     validations:
       required: true

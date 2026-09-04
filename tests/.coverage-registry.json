@@ -6495,6 +6495,10 @@
         {
           "file": "tests/unit/t228-hook-run-exports.test.ts",
           "mechanism": "cli"
+        },
+        {
+          "file": "tests/unit/t331-kimi-hook-adapter.test.ts",
+          "mechanism": "cli"
         }
       ],
       "status": "covered"
@@ -6514,6 +6518,10 @@
         },
         {
           "file": "tests/unit/t248-steering-content-delivery.test.ts",
+          "mechanism": "cli"
+        },
+        {
+          "file": "tests/unit/t331-kimi-hook-adapter.test.ts",
           "mechanism": "cli"
         }
       ],
@@ -6555,6 +6563,10 @@
         {
           "file": "tests/unit/t276-cursor-adapter.test.ts",
           "mechanism": "cli"
+        },
+        {
+          "file": "tests/unit/t331-kimi-hook-adapter.test.ts",
+          "mechanism": "cli"
         }
       ],
       "status": "covered"
@@ -6578,6 +6590,10 @@
         },
         {
           "file": "tests/unit/t265-plan-approval-guard.test.ts",
+          "mechanism": "cli"
+        },
+        {
+          "file": "tests/unit/t331-kimi-hook-adapter.test.ts",
           "mechanism": "cli"
         }
       ],
@@ -6743,6 +6759,10 @@
         {
           "file": "tests/unit/t228-hook-run-exports.test.ts",
           "mechanism": "cli"
+        },
+        {
+          "file": "tests/unit/t331-kimi-hook-adapter.test.ts",
+          "mechanism": "cli"
         }
       ],
       "status": "covered"
@@ -6807,6 +6827,10 @@
         {
           "file": "tests/unit/t29.test.ts",
           "mechanism": "cli"
+        },
+        {
+          "file": "tests/unit/t331-kimi-hook-adapter.test.ts",
+          "mechanism": "cli"
         }
       ],
       "status": "covered"
@@ -6858,6 +6882,10 @@
         },
         {
           "file": "tests/unit/t170-audit-logger-per-intent.test.ts",
+          "mechanism": "cli"
+        },
+        {
+          "file": "tests/unit/t331-kimi-hook-adapter.test.ts",
           "mechanism": "cli"
         }
       ],
@@ -9340,6 +9368,10 @@
           "mechanism": "cli"
         },
         {
+          "file": "tests/unit/t332-kimi-doctor-hooks.test.ts",
+          "mechanism": "cli"
+        },
+        {
           "file": "tests/unit/t37.test.ts",
           "mechanism": "cli"
         },
@@ -9478,6 +9510,10 @@
         {
           "file": "tests/e2e/t-exec-codex-journey-workspace.serial.test.ts",
           "mechanism": "cli"
+        },
+        {
+          "file": "tests/e2e/t-exec-kimi-journey-workspace.serial.test.ts",
+          "mechanism": "none"
         },
         {
           "file": "tests/e2e/t301-express-scope-routing.test.ts",
@@ -9740,6 +9776,10 @@
           "mechanism": "cli"
         },
         {
+          "file": "tests/e2e/t-exec-kimi-journey-workspace.serial.test.ts",
+          "mechanism": "none"
+        },
+        {
           "file": "tests/integration/t-journey-workspace.sdk.test.ts",
           "mechanism": "sdk"
         },
@@ -9770,6 +9810,10 @@
         {
           "file": "tests/e2e/t-exec-codex-journey-workspace.serial.test.ts",
           "mechanism": "cli"
+        },
+        {
+          "file": "tests/e2e/t-exec-kimi-journey-workspace.serial.test.ts",
+          "mechanism": "none"
         },
         {
           "file": "tests/integration/t-journey-workspace.sdk.test.ts",

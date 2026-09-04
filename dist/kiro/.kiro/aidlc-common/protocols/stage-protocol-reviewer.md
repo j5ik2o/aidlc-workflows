@@ -341,3 +341,9 @@ If `directive.reviewer` is present, invoke the reviewer as a sub-agent (via the 
 ### GitHub Copilot
 
 If `directive.reviewer` is present, invoke the reviewer as a sub-agent (delegate to the reviewer custom agent - the `.github/agents/` roster is exposed as callable agents).
+
+---
+
+### Kimi Code
+
+If `directive.reviewer` is present, invoke the reviewer as a sub-agent (via the `Agent` tool with `subagent_type` set to the reviewer agent).

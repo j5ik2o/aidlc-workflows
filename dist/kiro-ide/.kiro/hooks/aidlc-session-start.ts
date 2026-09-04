@@ -254,7 +254,10 @@ if (sessionId) {
           readSessionRebindOffer(projectDir, sessionId) === signature;
         const live = liveUuid ? findIntentByUuid(projectDir, liveUuid) : null;
         const liveSlug = live ? live.slug : "(none)";
-        const entrySkill = harnessDir() === ".codex" ? "$aidlc" : "/aidlc";
+        const entrySkill =
+          harnessDir() === ".codex" ? "$aidlc"
+            : harnessDir() === ".kimi-code" ? "/skill:aidlc"
+              : "/aidlc";
         // The cursor verb switches within the active space. When the stamped
         // intent lives elsewhere, prefix the space switch. Use the harness's
         // native entry skill so Codex never receives a slash command.

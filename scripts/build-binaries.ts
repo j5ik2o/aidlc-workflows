@@ -86,6 +86,7 @@ const RUNTIME_DISTRIBUTIONS = [
   "kiro-ide",
   "copilot",
   "opencode",
+  "kimi",
 ] as const;
 const MIN_CROSS_BYTES = 10 * 1024 * 1024;
 const DEV_SPAWN_MARKER = "/* dev-mode bun spawn */";
@@ -1798,6 +1799,7 @@ function buildTarget(target: TargetConfig): TargetResult {
     result.gates.push(harnessRuntimeGate(actual.artifact, "kiro-ide", ".kiro"));
     result.gates.push(harnessRuntimeGate(actual.artifact, "copilot", ".aidlc"));
     result.gates.push(harnessRuntimeGate(actual.artifact, "opencode", ".aidlc"));
+    result.gates.push(harnessRuntimeGate(actual.artifact, "kimi", ".kimi-code"));
     result.gates.push(harnessProbeGate(
       actual.artifact,
       "kiro",

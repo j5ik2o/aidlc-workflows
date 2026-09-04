@@ -50,7 +50,13 @@ describe("t327 refusal narration contract", () => {
       const body = read(rel);
       const start = body.indexOf(marker);
       expect(start, `${rel} lacks the refusal clause`).toBeGreaterThan(-1);
-      const clause = body.slice(start).split("\n\n")[0];
+      // The doctor invocation inside the clause is harness-native (Kimi
+      // invokes skills as /skill:<name>); normalize before the cross-harness
+      // byte comparison, same as t181's narration-rule gate.
+      const clause = body
+        .slice(start)
+        .split("\n\n")[0]
+        .replaceAll("/skill:aidlc --doctor", "/aidlc --doctor");
       const names = clauses.get(clause) ?? [];
       names.push(harness.name);
       clauses.set(clause, names);

@@ -593,7 +593,8 @@ export function renderRunner(scope: string, description: string): string {
   const dir = scopeRunnerDirName(scope, front ?? {});
   const activeHarnessDir = harnessDir();
   const harnessName = process.env.AIDLC_HARNESS_NAME?.trim();
-  const entrySkill = activeHarnessDir === ".codex" ? "$aidlc" : "/aidlc";
+  const isKimi = harnessName === "kimi" || activeHarnessDir === ".kimi-code";
+  const entrySkill = activeHarnessDir === ".codex" ? "$aidlc" : isKimi ? "/skill:aidlc" : "/aidlc";
   const freshSessionFlow = (() => {
     if (harnessName === "claude") return "use `/clear` (or restart Claude Code)";
     if (harnessName === "codex") return "exit or restart Codex CLI and start a new session";
@@ -606,11 +607,17 @@ export function renderRunner(scope: string, description: string): string {
     if (harnessName === "copilot") {
       return "start a new Copilot CLI session or open a new VS Code agent chat";
     }
+    if (harnessName === "kimi") {
+      return "run `/new` in the Kimi Code TUI (or restart `kimi`)";
+    }
     if (harnessName === "cursor") return "start a new Cursor chat session";
     if (activeHarnessDir === ".claude") return "use `/clear` (or restart Claude Code)";
     if (activeHarnessDir === ".codex") return "exit or restart Codex CLI and start a new session";
     if (activeHarnessDir === ".kiro") {
       return "start a new Kiro CLI session or open a new Kiro IDE chat";
+    }
+    if (activeHarnessDir === ".kimi-code") {
+      return "run `/new` in the Kimi Code TUI (or restart `kimi`)";
     }
     return "exit or restart the current harness and start a new session";
   })();

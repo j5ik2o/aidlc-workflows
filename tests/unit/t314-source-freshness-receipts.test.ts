@@ -90,8 +90,25 @@ const SWARM_TOOL = join(AIDLC_SRC, "tools", "aidlc-swarm.ts");
 const WORKTREE_TOOL = join(AIDLC_SRC, "tools", "aidlc-worktree.ts");
 const REVIEWER = "aidlc-architecture-reviewer-agent"; // code-generation's declared reviewer
 
+// Command-scope core.excludesFile=/dev/null for every git this file (and the
+// tool subprocesses it spawns) runs: git ALWAYS reads the default
+// $HOME/.config/git/ignore even when GIT_CONFIG_GLOBAL points elsewhere, so a
+// developer machine ignoring `vendor/` there makes `submodule add <src>
+// vendor/sub` fail and turns the fixtures' vendor/* paths into "ignored by
+// Git" evidence rejections. Setting it on THIS process env covers both the
+// direct git() calls and the tool spawns that inherit it.
+process.env.GIT_CONFIG_COUNT = "1";
+process.env.GIT_CONFIG_KEY_0 = "core.excludesFile";
+process.env.GIT_CONFIG_VALUE_0 = "/dev/null";
+
 function git(dir: string, args: string[]): void {
-  const r = spawnSync("git", ["-C", dir, ...args], { encoding: "utf-8" });
+  // NOTE: bun's spawnSync with no `env` snapshots process.env at process
+  // start, so the module-top assignments above do NOT reach this call —
+  // spread it explicitly.
+  const r = spawnSync("git", ["-C", dir, ...args], {
+    encoding: "utf-8",
+    env: { ...process.env },
+  });
   if ((r.status ?? -1) !== 0) {
     throw new Error(`git ${args.join(" ")} failed: ${r.stdout}${r.stderr}`);
   }

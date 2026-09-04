@@ -1,0 +1,134 @@
+# AI-DLC hook wiring for Kimi Code CLI
+# ======================================
+#
+# APPEND this file's [[hooks]] entries to your USER-level ~/.kimi-code/config.toml.
+# Kimi Code reads hook registrations only from that file — there is no
+# project-level hook config — so this is a one-time manual step per machine.
+#
+# AI-DLC on Kimi Code requires these hooks: they are the deterministic layer
+# that keeps the workflow engine in charge (session lifecycle events, the
+# forwarding loop on Stop, the PreToolUse guards, and the audit/sensor feed).
+#
+# Every command is PROJECT-RELATIVE (hook commands run with cwd = the
+# session's project directory) and FAIL-OPEN: in a project without the AI-DLC
+# install the adapter (or its target core hook) simply isn't there, the hook
+# exits non-zero or 0, and Kimi's own fail-open rule lets the turn proceed.
+# These registrations are therefore harmless in non-AIDLC projects.
+#
+# TRUST BOUNDARY (read before appending): this registration is USER-GLOBAL and
+# the commands are PROJECT-RELATIVE, so once appended, EVERY project you open
+# with Kimi Code is eligible to execute whatever sits at
+# .kimi-code/hooks/aidlc-kimi-adapter.ts IN THAT PROJECT — under your
+# credentials. A malicious repository shipping its own file at that path would
+# have its code run by the hooks. Append this snippet only if you work
+# exclusively in repositories you trust. For untrusted repos, either do not
+# use this harness port there, or copy the whole .kimi-code/hooks/ directory
+# (the adapter resolves its sibling core hooks next to itself, so the adapter
+# alone is not enough) to a user-owned absolute path — e.g.
+# ~/.kimi-code/aidlc/hooks/ — and edit the commands below to that absolute
+# path. One user-owned copy serves every project (the core hooks run against
+# the session's project directory); keep it updated when your projects update
+# their AI-DLC version.
+#
+# After appending, run `/skill:aidlc --doctor` inside an AI-DLC project to
+# verify the wiring.
+#
+# Intentionally NOT wired:
+#   - aidlc-fold-usage: the usage-ledger producer is Claude-only (it parses
+#     Claude Code's transcript format); there is nothing to fold on Kimi.
+#   - aidlc-statusline: Kimi's status line is a user-level tui.toml setting,
+#     not a hook; wire it there if you want the AI-DLC status line.
+
+[[hooks]]
+event = "SessionStart"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts session-start"
+
+[[hooks]]
+event = "SessionEnd"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts session-end"
+
+[[hooks]]
+event = "UserPromptSubmit"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts record-human-turn"
+
+# Subagent dispatch: exact active-stage rule delivery. The adapter normalizes
+# AgentSwarm to the single-dispatch Agent shape the core hook matches on.
+[[hooks]]
+event = "PreToolUse"
+matcher = "Agent|AgentSwarm"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts deliver-stage-rules"
+
+# Lifecycle guard. The core hook self-filters to tool_name == "Bash" (only a
+# shell call can invoke aidlc-state.ts); the wider matcher mirrors the Claude
+# wiring and costs one fail-open no-op spawn on the read tools.
+[[hooks]]
+event = "PreToolUse"
+matcher = "Read|Edit|Write|Glob|Grep|Bash"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts state-transition-guard"
+
+# Per-unit reviewer read-scope bound. NOTE: Kimi's documented hook payload
+# carries no subagent identity field, so this guard currently fails open for
+# delegated reviewers; it is wired so it starts enforcing the day Kimi
+# delivers agent identity, and it costs nothing until then.
+[[hooks]]
+event = "PreToolUse"
+matcher = "Read|Edit|Write|Glob|Grep|Bash"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts reviewer-scope"
+
+# Terminal-receipt write-freeze (a produces[] write that would void a fresh
+# review receipt is refused before the invalidation happens).
+[[hooks]]
+event = "PreToolUse"
+matcher = "Read|Edit|Write|Glob|Grep|Bash"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts review-freeze"
+
+# Code generation's plan-before-generation ordering.
+[[hooks]]
+event = "PreToolUse"
+matcher = "Edit|Write|Bash|Agent|AgentSwarm"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts plan-approval-guard"
+
+# Write audit + sensor dispatch, one adapter target running both core hooks in
+# the Claude registration order. Sensors can invoke linters/type-checkers, so
+# this gets a wider timeout than the default 30s.
+[[hooks]]
+event = "PostToolUse"
+matcher = "Write|Edit"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts audit-and-sensors"
+timeout = 120
+
+# Kimi's plan tool is TodoList; the adapter maps the first in_progress todo
+# to the TaskUpdate shape the core hook keys on.
+[[hooks]]
+event = "PostToolUse"
+matcher = "TodoList"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts sync-workflow-state"
+
+# An answered question is a human turn (the human-presence gate).
+[[hooks]]
+event = "PostToolUse"
+matcher = "AskUserQuestion"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts record-human-turn"
+
+# Stage-graph recompile after shell calls that may have added stage files.
+[[hooks]]
+event = "PostToolUse"
+matcher = "Bash"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts rebuild-stage-graph"
+timeout = 60
+
+[[hooks]]
+event = "PreCompact"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts validate-state"
+
+[[hooks]]
+event = "SubagentStop"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts log-subagent"
+
+# The forwarding loop: the adapter translates the core hook's
+# {"decision":"block","reason"} stdout into Kimi's block channel (exit 2 +
+# reason on stderr). Runs the engine (`next`), so it gets a wider timeout.
+[[hooks]]
+event = "Stop"
+command = "bun .kimi-code/hooks/aidlc-kimi-adapter.ts continue-workflow"
+timeout = 60

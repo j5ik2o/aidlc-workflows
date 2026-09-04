@@ -1,0 +1,94 @@
+{
+  "sessionStart": {
+    "hook_event_name": "SessionStart",
+    "session_id": "kimi-session-0000001",
+    "session_title": "tip calculator cli",
+    "client_type": "cli",
+    "cwd": "/tmp/example-project",
+    "source": "startup"
+  },
+  "stop": {
+    "hook_event_name": "Stop",
+    "session_id": "kimi-session-0000002",
+    "session_title": "tip calculator cli",
+    "client_type": "cli",
+    "cwd": "/tmp/example-project",
+    "stop_hook_active": false
+  },
+  "postToolUse_write_aidlcDocs": {
+    "hook_event_name": "PostToolUse",
+    "session_id": "kimi-session-0000003",
+    "session_title": "tip calculator cli",
+    "client_type": "cli",
+    "cwd": "/tmp/example-project",
+    "tool_name": "Write",
+    "tool_input": {
+      "path": "aidlc-docs/ideation/intent-capture/intent-capture-questions.md",
+      "content": "# Intent Capture Questions\n\n## Q1. What business problem are we solving?\n\nA. Users need a fast way to calculate a restaurant tip and total from a bill amount.\n\n[Answer]: A\n"
+    },
+    "tool_response": "File written successfully."
+  },
+  "postToolUse_write_plain": {
+    "hook_event_name": "PostToolUse",
+    "session_id": "kimi-session-0000004",
+    "session_title": "tip calculator cli",
+    "client_type": "cli",
+    "cwd": "/tmp/example-project",
+    "tool_name": "Write",
+    "tool_input": {
+      "path": "src/main.ts",
+      "content": "console.log(\"hello\");\n"
+    },
+    "tool_response": "File written successfully."
+  },
+  "postToolUse_todoList_slug": {
+    "hook_event_name": "PostToolUse",
+    "session_id": "kimi-session-0000005",
+    "session_title": "tip calculator cli",
+    "client_type": "cli",
+    "cwd": "/tmp/example-project",
+    "tool_name": "TodoList",
+    "tool_input": {
+      "todos": [
+        { "title": "Capturing the intent [intent-capture]", "status": "in_progress" },
+        { "title": "Analyzing requirements [requirements-analysis]", "status": "pending" }
+      ]
+    },
+    "tool_response": "The todo list was updated."
+  },
+  "postToolUse_todoList": {
+    "hook_event_name": "PostToolUse",
+    "session_id": "kimi-session-0000006",
+    "session_title": "tip calculator cli",
+    "client_type": "cli",
+    "cwd": "/tmp/example-project",
+    "tool_name": "TodoList",
+    "tool_input": {
+      "todos": [
+        { "title": "Write the tip calculation", "status": "in_progress" },
+        { "title": "Add tests", "status": "pending" }
+      ]
+    },
+    "tool_response": "The todo list was updated."
+  },
+  "preToolUse_agentSwarm": {
+    "hook_event_name": "PreToolUse",
+    "session_id": "kimi-session-0000007",
+    "session_title": "tip calculator cli",
+    "client_type": "cli",
+    "cwd": "/tmp/example-project",
+    "tool_name": "AgentSwarm",
+    "tool_input": {
+      "subagent_type": "aidlc-product-agent",
+      "prompt_template": "Run .kimi-code/aidlc-common/stages/inception/user-stories.md.",
+      "items": ["US-01", "US-02"]
+    }
+  },
+  "subagentStop": {
+    "hook_event_name": "SubagentStop",
+    "session_id": "kimi-session-0000008",
+    "session_title": "tip calculator cli",
+    "client_type": "cli",
+    "cwd": "/tmp/example-project"
+  }
+}

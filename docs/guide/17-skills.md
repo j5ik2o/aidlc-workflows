@@ -5,7 +5,9 @@
 > **Harness note.** This chapter uses Claude Code's surfaces — skills under
 > `.claude/skills/`, typed with a leading `/` from the picker. Kiro ships the same
 > runner set under `.kiro/skills/` (also `/`-typed); Codex ships them to
-> `.agents/skills/` and types them with `$` (`$aidlc-bugfix`). The runner *set* and
+> `.agents/skills/` and types them with `$` (`$aidlc-bugfix`); Kimi Code ships
+> them under `.kimi-code/skills/`, typed as `/skill:<name>`
+> (`/skill:aidlc-bugfix`). The runner *set* and
 > what each does are identical across harnesses — only the directory and prefix
 > differ. See [Running on other harnesses](harnesses/README.md).
 

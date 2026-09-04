@@ -289,6 +289,9 @@ describe("t181 per-harness conductor-SKILL freshness gate (P11 RESOLVE-2)", () =
     // Byte-alignment, not just presence: the rule is authored once and ported,
     // so a per-harness reword is drift. Extracted by its own anchors rather than
     // line numbers, which move as each SKILL gains harness-specific prose.
+    // The doctor invocation inside the rule is harness-native (Kimi invokes
+    // skills as /skill:<name>), so normalize it before comparing — same
+    // posture as the codex-native $aidlc allowances elsewhere in this gate.
     const blocks = new Map<string, string[]>();
     for (const rel of skills) {
       const body = readFileSync(join(REPO_ROOT, rel), "utf-8");
@@ -296,7 +299,10 @@ describe("t181 per-harness conductor-SKILL freshness gate (P11 RESOLVE-2)", () =
       const end = body.indexOf("**Isolated stage-runner branch.**");
       expect(start, `${rel} lacks the narration rule`).toBeGreaterThan(-1);
       expect(end, `${rel} lacks the isolated-run anchor`).toBeGreaterThan(start);
-      const block = body.slice(start, end).trim();
+      const block = body
+        .slice(start, end)
+        .replaceAll("/skill:aidlc --doctor", "/aidlc --doctor")
+        .trim();
       const seen = blocks.get(block) ?? [];
       seen.push(rel);
       blocks.set(block, seen);

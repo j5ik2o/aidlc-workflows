@@ -55,6 +55,13 @@ const GIT_ENV = {
   GIT_CONFIG_GLOBAL: "/dev/null",
   GIT_CONFIG_SYSTEM: "/dev/null",
   GIT_CONFIG_NOSYSTEM: "1",
+  // GIT_CONFIG_GLOBAL=/dev/null does NOT suppress git's DEFAULT excludes file
+  // ($HOME/.config/git/ignore): a developer machine ignoring `vendor/` there
+  // makes `git submodule add <src> vendor/sub` fail in a fresh temp repo.
+  // Command-scope core.excludesFile=/dev/null closes that leak.
+  GIT_CONFIG_COUNT: "1",
+  GIT_CONFIG_KEY_0: "core.excludesFile",
+  GIT_CONFIG_VALUE_0: "/dev/null",
   GIT_TERMINAL_PROMPT: "0",
 };
 

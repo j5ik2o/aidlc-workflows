@@ -121,6 +121,7 @@ const FRESH_SESSION_TEXT: Record<string, string> = {
   cursor: "start a new Cursor chat (IDE) or restart agent (CLI)",
   kiro: "exit or restart Kiro CLI and start a new session",
   "kiro-ide": "open a new Kiro IDE chat",
+  kimi: "run `/new` in the Kimi Code TUI (or restart `kimi`)",
   opencode: "exit or restart OpenCode and start a new session",
   copilot: "start a new Copilot CLI session or open a new VS Code agent chat",
 };
@@ -181,7 +182,8 @@ describe("t123 (smoke) skills-spec conformance — every shipped skill set", () 
         join(harness.skillsRoot, "aidlc-bugfix", "SKILL.md"),
         "utf-8",
       );
-      const entrySkill = harness.name === "codex" ? "$aidlc" : "/aidlc";
+      const entrySkill =
+        harness.name === "codex" ? "$aidlc" : harness.name === "kimi" ? "/skill:aidlc" : "/aidlc";
       expect(runner).toContain(`Packaging over \`${entrySkill} --scope bugfix\``);
       expect(runner).toContain(`invoke \`${entrySkill}\` to begin the`);
       expect(runner).toContain("`intent-create` command");

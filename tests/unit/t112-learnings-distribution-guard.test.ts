@@ -172,8 +172,8 @@ interface PersistResult {
  * seeded tree — matching the .sh's clean-shell environment (the .sh never
  * exports it).
  */
-function runPersist(root: string): PersistResult {
-  const env = { ...process.env };
+function runPersist(root: string, extraEnv: Record<string, string> = {}): PersistResult {
+  const env = { ...process.env, ...extraEnv };
   delete env.AIDLC_STAGES_DIR;
   delete env.CLAUDE_PROJECT_DIR;
   const res = spawnSync(
@@ -232,6 +232,21 @@ describe("t112 aidlc-learnings persist — framework-distribution guard (migrate
     // no manifest scaffolded despite the refusal.
     expect(r.status).toBe(1);
     expect(existsSync(join(fwroot, ".claude", "sensors", "aidlc-bad.md"))).toBe(false);
+  }, 30000);
+
+  // The kimi distribution tree (.../dist/kimi) must be recognised the same way:
+  // with AIDLC_HARNESS_DIR=.kimi-code the resolved manifest path is
+  // .../dist/kimi/.kimi-code/sensors/aidlc-bad.md — refuse, exit 1, no write.
+  test("kimi framework path (dist/kimi/.kimi-code/sensors) is refused with exit 1", () => {
+    const fwroot = join(mkTempRoot(), "fw", "dist", "kimi");
+    seedProject(fwroot);
+    const r = runPersist(fwroot, { AIDLC_HARNESS_DIR: ".kimi-code" });
+    expect(r.status).toBe(1);
+    expect(r.out).toContain(
+      "refusing to scaffold a sensor manifest under the framework distribution",
+    );
+    expect(r.out).toContain(join("dist", "kimi", ".kimi-code", "sensors", "aidlc-bad.md"));
+    expect(existsSync(join(fwroot, ".kimi-code", "sensors", "aidlc-bad.md"))).toBe(false);
   }, 30000);
 
   // ===========================================================================

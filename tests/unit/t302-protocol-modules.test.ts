@@ -191,6 +191,7 @@ describe("t302 conditional protocol modules", () => {
       "the harness resolves its `.codex/agents/aidlc-<role>-agent.toml",
       "via the `task` tool targeting the reviewer agent",
       "delegate to the reviewer custom agent",
+      "via the `Agent` tool with `subagent_type` set to the reviewer agent",
     ]) {
       expect(reviewerModule).toContain(clause);
     }
