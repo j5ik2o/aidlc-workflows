@@ -13,7 +13,11 @@
 //
 // HOOKS NOTE: Kimi registers hooks ONLY from the user-level
 // ~/.kimi-code/config.toml. The journey isolates the kimi home to a temp dir
-// (KIMI_CODE_HOME) whose config.toml gets the shipped
+// (KIMI_CODE_HOME) which is FIRST seeded from the user's REAL $KIMI_CODE_HOME
+// (default ~/.kimi-code — read-only: copied, never written, never logged):
+// config.toml for the provider declarations, plus the credentials/ and oauth/
+// token stores that sit BESIDE it (a hooks-only or config-only home runs
+// unauthenticated), and THEN gets the shipped
 // .kimi-code/hooks.snippet.toml appended verbatim — the snippet's commands are
 // project-relative and Kimi runs hook commands with cwd = the session's
 // project directory, so no path adjustment is needed. If the running kimi
@@ -22,12 +26,14 @@
 // hook-driven), the session/audit hook events simply do not fire.
 //
 // LIVE GATE: requires AIDLC_KIMI_EXEC_LIVE=1 + a `kimi` binary on PATH
-// (AIDLC_KIMI_BIN to override) + whatever credentials the user's kimi config
-// carries. Skips cleanly otherwise. Serial.
+// (AIDLC_KIMI_BIN to override) + provider credentials in the resolved home —
+// seeded from the real Kimi home as above; when no real config or no
+// credentials are found, the run SKIPS with an explicit reason instead of
+// failing unauthenticated. Skips cleanly otherwise. Serial.
 
 import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   activeSpace,
@@ -43,6 +49,16 @@ import {
 
 const KIMI_DIST = join(REPO_ROOT, "dist", "kimi");
 const KIMI_BIN = process.env.AIDLC_KIMI_BIN ?? "kimi";
+// The REAL kimi home — mirrored from aidlc-utility.ts's resolution
+// ($KIMI_CODE_HOME, default ~/.kimi-code). READ-ONLY here: the journey copies
+// from it into the isolated home, never writes it, never logs its contents.
+const REAL_KIMI_HOME =
+  process.env.KIMI_CODE_HOME ?? join(process.env.HOME ?? "", ".kimi-code");
+const REAL_KIMI_CONFIG = join(REAL_KIMI_HOME, "config.toml");
+// The managed-provider token stores live BESIDE config.toml, not inside it
+// (verified against kimi 0.38.0: a config-only isolated home fails with
+// "provider managed:kimi-code has no credential configured").
+const CREDENTIAL_DIRS = ["credentials", "oauth"];
 
 // A multi-spawn live journey; each verb spawn is a one-shot print-mode run.
 // Budget mirrors the codex leg's logic half, minus the heavyweight per-repo
@@ -63,19 +79,47 @@ function kimiPresent(): boolean {
   return r.status === 0;
 }
 
+// A real kimi home counts as credentialed when its config.toml declares a
+// provider section or carries an API-key/OAuth-token entry, OR when one of
+// the beside-config token stores (credentials/, oauth/) exists. Heuristic by
+// design — the live run's own auth failure remains the hard signal; this just
+// turns "no credentials at all" into a clear skip instead of a cryptic
+// unauthenticated failure. Only PATHs are ever surfaced, never contents.
+function kimiCredentialsPresent(): boolean {
+  try {
+    if (
+      /\[\[?\s*providers|api[_-]?key|oauth|access[_-]?token/i.test(
+        readFileSync(REAL_KIMI_CONFIG, "utf-8"),
+      )
+    ) {
+      return true;
+    }
+  } catch {
+    /* fall through to the token-store check */
+  }
+  return CREDENTIAL_DIRS.some((d) => existsSync(join(REAL_KIMI_HOME, d)));
+}
+
 function skipReason(): string | null {
   if (process.env.AIDLC_KIMI_EXEC_LIVE !== "1") {
     return "set AIDLC_KIMI_EXEC_LIVE=1 to run the live kimi-exec workspace journey";
   }
   if (!kimiPresent()) return `kimi binary not found (AIDLC_KIMI_BIN=${KIMI_BIN})`;
   if (!existsSync(KIMI_DIST)) return `distributable missing: ${KIMI_DIST}`;
+  if (!existsSync(REAL_KIMI_CONFIG)) {
+    return `no real kimi config at ${REAL_KIMI_CONFIG} to seed provider credentials into the isolated KIMI_CODE_HOME`;
+  }
+  if (!kimiCredentialsPresent()) {
+    return `no provider credentials found under ${REAL_KIMI_HOME} (config.toml providers, credentials/, oauth/) — the isolated journey home would run unauthenticated`;
+  }
   return null;
 }
 const SKIP_REASON = skipReason();
 
 // The journey root with the kimi shell copied in (setupWorkspaceJourney), plus
-// an isolated kimi home whose config.toml carries the hook snippet (see the
-// HOOKS NOTE above — verbatim append, no path adjustment).
+// an isolated kimi home seeded from the REAL home (config + token stores)
+// before the hook snippet is appended (see the HOOKS NOTE above — verbatim
+// append, no path adjustment).
 function setupKimiJourney(): WorkspaceJourney {
   const journey = setupWorkspaceJourney("kimi");
   const { root, home } = journey;
@@ -83,7 +127,21 @@ function setupKimiJourney(): WorkspaceJourney {
     join(root, ".kimi-code", "hooks.snippet.toml"),
     "utf-8",
   );
-  writeFileSync(join(home, "config.toml"), `${snippet}\n`, "utf-8");
+  // Kimi reads provider declarations from $KIMI_CODE_HOME/config.toml and the
+  // managed-provider tokens from the credentials/ + oauth/ dirs beside it, so
+  // a hooks-only isolated home would run unauthenticated. Copy the real files
+  // FIRST (never write those paths, never log their contents), then append
+  // the snippet. skipReason already gates on the real config existing and
+  // carrying credentials; if the file vanished between gate and setup, fall
+  // back to a minimal empty config and let the live auth failure say so.
+  const base = existsSync(REAL_KIMI_CONFIG)
+    ? readFileSync(REAL_KIMI_CONFIG, "utf-8").trimEnd()
+    : "# Isolated KIMI_CODE_HOME for the live journey; no real config was found to seed credentials.";
+  writeFileSync(join(home, "config.toml"), `${base}\n\n${snippet}\n`, "utf-8");
+  for (const dir of CREDENTIAL_DIRS) {
+    const src = join(REAL_KIMI_HOME, dir);
+    if (existsSync(src)) cpSync(src, join(home, dir), { recursive: true });
+  }
   return journey;
 }
 

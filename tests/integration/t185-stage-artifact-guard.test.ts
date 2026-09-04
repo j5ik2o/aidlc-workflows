@@ -1822,6 +1822,17 @@ X. Other (please specify)
       expect(r.out).toContain("workspace_requires");
     });
 
+    test("a kimi install alone (.kimi-code/ files) is not source work", () => {
+      stageCodeGenDocsOnly();
+      writeWorkspaceFile(proj, ".kimi-code/tools/aidlc-orchestrate.ts");
+      writeWorkspaceFile(proj, ".kimi-code/rules/aidlc.md");
+      reviewCodeGen(proj);
+      bypassed(proj, ["gate-start", "code-generation"]);
+      const r = guarded(proj, ["approve", "code-generation", "--user-input", "ok"]);
+      expect(r.rc).not.toBe(0);
+      expect(r.out).toContain("workspace_requires");
+    });
+
     test("PASSES code-generation once real source exists outside aidlc/", () => {
       stageCodeGenDocsOnly();
       writeWorkspaceFile(proj, "src/auth/login.ts"); // outside aidlc/ + harness

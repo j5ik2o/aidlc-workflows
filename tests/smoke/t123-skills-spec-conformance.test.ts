@@ -182,7 +182,8 @@ describe("t123 (smoke) skills-spec conformance — every shipped skill set", () 
         join(harness.skillsRoot, "aidlc-bugfix", "SKILL.md"),
         "utf-8",
       );
-      const entrySkill = harness.name === "codex" ? "$aidlc" : "/aidlc";
+      const entrySkill =
+        harness.name === "codex" ? "$aidlc" : harness.name === "kimi" ? "/skill:aidlc" : "/aidlc";
       expect(runner).toContain(`Packaging over \`${entrySkill} --scope bugfix\``);
       expect(runner).toContain(`invoke \`${entrySkill}\` to begin the`);
       expect(runner).toContain("`intent-create` command");

@@ -10,6 +10,9 @@
 //   • Codex — the AIDLC_RULES_DIR env var in config.toml.
 //   • opencode — the `instructions` glob in the project-root opencode.json.
 //   • Cursor — standing + phase read pointers in <harness>/rules/*.mdc.
+//   • Kimi — a pointer doc at <harness>/rules/aidlc.md carrying the method
+//     paths twice: @-lines kept verbatim in Claude's format (Kimi has no
+//     @-import expansion) plus a plain readable list of the same paths.
 //
 // These surfaces stay COMMITTED (each carries load-bearing engine wiring beyond
 // the include — Kiro's agent JSON holds the conductor prompt + hook block,
@@ -67,6 +70,37 @@ function repointClaudeStub(raw: string, space: string): string | null {
       const m = line.match(CLAUDE_AT_LINE);
       if (!m) return line;
       const next = `${m[1]}${rel}/${m[2]}`;
+      if (next !== line) changed = true;
+      return next;
+    })
+    .join("\n");
+  return changed ? out : null;
+}
+
+// A plain readable-list entry in a Kimi pointer doc: `- \`aidlc/spaces/<X>/memory/<file>\``.
+// Kimi has no @-import expansion, so the doc lists each method path in prose
+// as well as in the machine-shaped @-lines; BOTH shapes must follow the space.
+const KIMI_LIST_LINE = /^(- `)aidlc\/spaces\/[^/]+\/memory\/([^`]+)`$/;
+
+/** Rewrite BOTH method-path shapes in a Kimi rules/aidlc.md pointer doc — the
+ *  machine-shaped @-lines (kept verbatim in Claude's @-import format) and the
+ *  plain readable list — preserving every other byte. Returns null when
+ *  nothing changed (already on `space`). */
+function repointKimiStub(raw: string, space: string): string | null {
+  const rel = spaceMemoryRel(space);
+  let changed = false;
+  const out = raw
+    .split("\n")
+    .map((line) => {
+      const at = line.match(CLAUDE_AT_LINE);
+      if (at) {
+        const next = `${at[1]}${rel}/${at[2]}`;
+        if (next !== line) changed = true;
+        return next;
+      }
+      const li = line.match(KIMI_LIST_LINE);
+      if (!li) return line;
+      const next = `${li[1]}${rel}/${li[2]}\``;
       if (next !== line) changed = true;
       return next;
     })
@@ -185,6 +219,17 @@ export function repointHarnessIncludes(projectDir: string, space?: string): stri
       const raw = readSafe(stubPath);
       if (raw !== null) {
         repointFile(stubPath, join(harness, "rules", "aidlc.md"), raw, sp, repointClaudeStub, written);
+      }
+    }
+    return written;
+  }
+
+  if (harness === ".kimi-code") {
+    const stubPath = join(harnessRoot, "rules", "aidlc.md");
+    if (existsSync(stubPath)) {
+      const raw = readSafe(stubPath);
+      if (raw !== null) {
+        repointFile(stubPath, join(harness, "rules", "aidlc.md"), raw, sp, repointKimiStub, written);
       }
     }
     return written;

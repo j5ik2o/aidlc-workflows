@@ -230,7 +230,8 @@ describe("t331 Kimi hook adapter (payload fixtures)", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
-  });
+    // 29 synchronous bun subprocess launches need more than the 5s default.
+  }, 120_000);
 
   test("1: a missing install fails open (adapter without sibling core hooks exits 0)", () => {
     // The hook registration lives in the USER-level ~/.kimi-code/config.toml,

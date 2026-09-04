@@ -138,6 +138,59 @@ describe("t-active-space-includes: Claude @-stub", () => {
   });
 });
 
+describe("t-active-space-includes: Kimi rules/aidlc.md pointer doc", () => {
+  beforeEach(() => {
+    process.env.AIDLC_HARNESS_DIR = ".kimi-code";
+  });
+
+  function setup(): string {
+    const root = freshRoot();
+    seedSpaces(root);
+    mkdirSync(join(root, ".kimi-code", "rules"), { recursive: true });
+    cpSync(distSurface("kimi", ".kimi-code", "rules", "aidlc.md"), join(root, ".kimi-code", "rules", "aidlc.md"));
+    return root;
+  }
+
+  test("re-points BOTH the @-lines and the plain readable list to the requested space", () => {
+    const root = setup();
+    const before = readFileSync(join(root, ".kimi-code", "rules", "aidlc.md"), "utf-8");
+    const written = repointHarnessIncludes(root, "teamB");
+    expect(written).toEqual([".kimi-code/rules/aidlc.md"]);
+    const after = readFileSync(join(root, ".kimi-code", "rules", "aidlc.md"), "utf-8");
+    const atLines = after.split("\n").filter((l) => l.startsWith("@"));
+    expect(atLines.length).toBe(7);
+    expect(atLines.every((l) => l.includes("/teamB/memory/"))).toBe(true);
+    expect(atLines.some((l) => l.includes("/default/memory/"))).toBe(false);
+    expect(after).toContain("@../../aidlc/spaces/teamB/memory/org.md");
+    expect(after).toContain("@../../aidlc/spaces/teamB/memory/phases/operation.md");
+    // The plain readable list follows the space too (the header comment's
+    // prose mentions of the default memory tree are NOT pointers and stay).
+    const listLines = after.split("\n").filter((l) => l.startsWith("- `"));
+    expect(listLines.length).toBe(7);
+    expect(listLines.every((l) => l.includes("/teamB/memory/"))).toBe(true);
+    expect(after).toContain("- `aidlc/spaces/teamB/memory/org.md`");
+    expect(after).toContain("- `aidlc/spaces/teamB/memory/phases/operation.md`");
+    // The comment header + prose are preserved — same total line count.
+    expect(after.split("\n").length).toBe(before.split("\n").length);
+  });
+
+  test("re-pointing to the SAME space already shipped (default) is a byte-identical NO-OP", () => {
+    const root = setup();
+    const before = readFileSync(join(root, ".kimi-code", "rules", "aidlc.md"), "utf-8");
+    const written = repointHarnessIncludes(root, "default");
+    expect(written).toEqual([]);
+    expect(readFileSync(join(root, ".kimi-code", "rules", "aidlc.md"), "utf-8")).toBe(before);
+  });
+
+  test("round-trip default → teamB → default restores the original bytes", () => {
+    const root = setup();
+    const before = readFileSync(join(root, ".kimi-code", "rules", "aidlc.md"), "utf-8");
+    repointHarnessIncludes(root, "teamB");
+    repointHarnessIncludes(root, "default");
+    expect(readFileSync(join(root, ".kimi-code", "rules", "aidlc.md"), "utf-8")).toBe(before);
+  });
+});
+
 describe("t-active-space-includes: Kiro agents/*.json resources glob", () => {
   beforeEach(() => {
     process.env.AIDLC_HARNESS_DIR = ".kiro";

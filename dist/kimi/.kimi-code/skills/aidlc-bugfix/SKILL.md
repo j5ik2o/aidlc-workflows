@@ -3,7 +3,7 @@ name: aidlc-bugfix
 generated-by: aidlc-runner-gen
 description: >
   Run the AI-DLC workflow with the bugfix scope baked in — no scope
-  detection. Fix a specific bug. Packaging over `/aidlc --scope bugfix`, which works
+  detection. Fix a specific bug. Packaging over `/skill:aidlc --scope bugfix`, which works
   without this skill.
 argument-hint: "[description | --status | --stage <slug|#> | --phase <name|#>]"
 user-invocable: true
@@ -12,7 +12,7 @@ user-invocable: true
 # AI-DLC — bugfix scope
 
 Drive the AI-DLC engine with the **bugfix** scope fixed. This is the same
-deterministic forwarding loop the `/aidlc` orchestrator runs, with `--scope
+deterministic forwarding loop the `/skill:aidlc` orchestrator runs, with `--scope
 bugfix` baked into the first `next` so scope detection is skipped. The
 engine owns all routing; the conductor persona arrives on the first directive's
 `conductor_persona` field — adopt it for the whole run.
@@ -34,12 +34,12 @@ engine owns all routing; the conductor persona arrives on the first directive's
 Pass `$ARGUMENTS` through verbatim after `--scope bugfix`; the engine parses
 any flags (`--status`, `--stage`, …) and the `--scope` from the
 state file always wins on an existing workflow, so re-running a started workflow
-resumes it. To run a different scope, use `/aidlc --scope <other>` instead.
+resumes it. To run a different scope, use `/skill:aidlc --scope <other>` instead.
 
 ## Starting unrelated new work?
 
 Before you forward `$ARGUMENTS` on step 1, make the SAME recognise-vs-route
-judgment the `/aidlc` orchestrator makes: does this input **continue** the
+judgment the `/skill:aidlc` orchestrator makes: does this input **continue** the
 active intent, or does it describe a **genuinely new, unrelated** piece of work?
 This matters most when the active intent is already **complete**: then `next`
 correctly returns `done` (the engine is read-only and never creates alongside a
@@ -70,6 +70,6 @@ continuation; the escape hatch is `next --new-intent`.
   as the loop's `print` handling describes: create the intent, then, because this is
   a NEW, unrelated intent and this session still carries the previous intent's
   context, **STOP** and follow the directive's hand-off: tell the user to start a
-  fresh session (run `/new` in the Kimi Code TUI (or restart `kimi`)) and invoke `/aidlc` to begin the
+  fresh session (run `/new` in the Kimi Code TUI (or restart `kimi`)) and invoke `/skill:aidlc` to begin the
   new intent with a clean slate. Nothing is lost; the intent is saved on disk.
 - **On DECLINE**, proceed with the active intent, the normal loop above.

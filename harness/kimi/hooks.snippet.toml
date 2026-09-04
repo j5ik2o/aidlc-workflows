@@ -15,6 +15,21 @@
 # exits non-zero or 0, and Kimi's own fail-open rule lets the turn proceed.
 # These registrations are therefore harmless in non-AIDLC projects.
 #
+# TRUST BOUNDARY (read before appending): this registration is USER-GLOBAL and
+# the commands are PROJECT-RELATIVE, so once appended, EVERY project you open
+# with Kimi Code is eligible to execute whatever sits at
+# .kimi-code/hooks/aidlc-kimi-adapter.ts IN THAT PROJECT — under your
+# credentials. A malicious repository shipping its own file at that path would
+# have its code run by the hooks. Append this snippet only if you work
+# exclusively in repositories you trust. For untrusted repos, either do not
+# use this harness port there, or copy the whole .kimi-code/hooks/ directory
+# (the adapter resolves its sibling core hooks next to itself, so the adapter
+# alone is not enough) to a user-owned absolute path — e.g.
+# ~/.kimi-code/aidlc/hooks/ — and edit the commands below to that absolute
+# path. One user-owned copy serves every project (the core hooks run against
+# the session's project directory); keep it updated when your projects update
+# their AI-DLC version.
+#
 # After appending, run `/skill:aidlc --doctor` inside an AI-DLC project to
 # verify the wiring.
 #

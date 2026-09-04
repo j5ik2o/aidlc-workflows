@@ -62,13 +62,13 @@ interface FireResult {
 
 /** Fire the real session-start hook with a source + session_id payload; return
  *  exit code + the decoded additionalContext (the hook's only stdout write). */
-function fire(p: string, source: string, sessionId: string): FireResult {
+function fire(p: string, source: string, sessionId: string, extraEnv: Record<string, string> = {}): FireResult {
   const r = Bun.spawnSync({
     cmd: [BUN, HOOK],
     stdin: new TextEncoder().encode(JSON.stringify({ source, session_id: sessionId })),
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...process.env, CLAUDE_PROJECT_DIR: p },
+    env: { ...process.env, CLAUDE_PROJECT_DIR: p, ...extraEnv },
   });
   const stdout = new TextDecoder().decode(r.stdout).trim();
   let context = "";
@@ -165,6 +165,20 @@ describe("t169 session-start resume rebind (mechanism cli — spawned hook + cur
       "after it completes, run `/aidlc intent billing`",
     );
     expect(resumed.context).not.toContain("&&");
+  });
+
+  test("kimi harness offers the rebind via /skill:aidlc, never /aidlc", () => {
+    const a = createIntent(proj, "auth-service", "default", "feature");
+    const b = createIntent(proj, "export-bug", "default", "feature");
+    setActiveIntentCursor(proj, a.dirName, "default");
+    fire(proj, "startup", "S-KIMI", { AIDLC_HARNESS_DIR: ".kimi-code" });
+    setActiveIntentCursor(proj, b.dirName, "default");
+
+    const resumed = fire(proj, "resume", "S-KIMI", { AIDLC_HARNESS_DIR: ".kimi-code" });
+    expect(resumed.exitCode).toBe(0);
+    expect(resumed.context).toContain("INTENT REBIND OFFER");
+    expect(resumed.context).toContain("/skill:aidlc intent auth-service");
+    expect(resumed.context).not.toContain("`/aidlc intent auth-service`");
   });
 
   test("resume with NO prior stamp (fresh session id) offers nothing", () => {

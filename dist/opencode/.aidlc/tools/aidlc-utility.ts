@@ -2262,6 +2262,39 @@ function appendPluginDoctorChecks(
   }
 }
 
+// Parse the [[hooks]] tables of a Kimi config/snippet into (event, target)
+// pairs, where target is the aidlc-kimi-adapter subcommand the command names.
+// Strictly line-oriented (the aidlc-lib mini-parser style — core tools carry
+// no TOML dependency because they are byte-copied into user installs):
+// comment lines (leading #) are dropped first so a commented-out registration
+// never counts, a new [[hooks]] header starts a new entry, and any other
+// table header closes the current one.
+function kimiAdapterRegistrations(toml: string): Array<{ event: string; target: string }> {
+  const out: Array<{ event: string; target: string }> = [];
+  let cur: { event?: string; command?: string } | null = null;
+  const flush = () => {
+    if (cur?.event !== undefined && cur.command !== undefined) {
+      const t = cur.command.match(/aidlc-kimi-adapter\.ts\s+([a-z0-9-]+)/);
+      if (t) out.push({ event: cur.event, target: t[1] });
+    }
+  };
+  for (const rawLine of toml.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (line === "" || line.startsWith("#")) continue;
+    if (line.startsWith("[")) {
+      flush();
+      cur = line === "[[hooks]]" ? {} : null;
+      continue;
+    }
+    if (cur === null) continue;
+    const kv = line.match(/^(event|command)\s*=\s*"([^"]*)"\s*$/);
+    if (!kv) continue;
+    cur[kv[1] as "event" | "command"] = kv[2];
+  }
+  flush();
+  return out;
+}
+
 function handleDoctor(projectDir: string, flags: Record<string, string> = {}): void {
   const results: DoctorCheckResult[] = [];
   const isWindows = process.platform === "win32";
@@ -2721,16 +2754,37 @@ function handleDoctor(projectDir: string, flags: Record<string, string> = {}): v
         pass: true,
         label: `${kimiConfigPath} absent — append .kimi-code/hooks.snippet.toml to the user-level Kimi config to wire the hooks`,
       });
-    } else if (!readFileSync(kimiConfigPath, "utf-8").includes("aidlc-kimi-adapter")) {
-      results.push({
-        pass: true,
-        label: `${kimiConfigPath} wires no aidlc-kimi-adapter hooks — append .kimi-code/hooks.snippet.toml to it`,
-      });
     } else {
-      results.push({
-        pass: true,
-        label: `${kimiConfigPath} wires aidlc-kimi-adapter (hook wiring)`,
-      });
+      // The REQUIRED roster is derived from the shipped snippet, so a new
+      // registration in hooks.snippet.toml becomes a doctor expectation
+      // automatically. Each entry must appear in the user config as its own
+      // [[hooks]] table (event + a command naming that adapter target);
+      // commented-out lines never count. When the snippet is unreadable the
+      // check degrades to the bare any-registration probe.
+      const snippetPath = join(projectDir, harness, "hooks.snippet.toml");
+      const required = existsSync(snippetPath)
+        ? kimiAdapterRegistrations(readFileSync(snippetPath, "utf-8"))
+        : [];
+      const registered = kimiAdapterRegistrations(readFileSync(kimiConfigPath, "utf-8"));
+      const missing = required.filter(
+        (req) => !registered.some((r) => r.event === req.event && r.target === req.target),
+      );
+      if (missing.length > 0) {
+        results.push({
+          pass: true,
+          label: `${kimiConfigPath} is missing ${missing.length} aidlc-kimi-adapter hook(s): ${missing.map((m) => `${m.event} → ${m.target}`).join(", ")} — append .kimi-code/hooks.snippet.toml to it`,
+        });
+      } else if (required.length === 0 && registered.length === 0) {
+        results.push({
+          pass: true,
+          label: `${kimiConfigPath} wires no aidlc-kimi-adapter hooks — append .kimi-code/hooks.snippet.toml to it`,
+        });
+      } else {
+        results.push({
+          pass: true,
+          label: `${kimiConfigPath} wires aidlc-kimi-adapter (hook wiring)`,
+        });
+      }
     }
     // No verified Kimi Code version floor in the repo — presence-check only,
     // warn-only when missing (mirrors the copilot CLI advisory branch).
