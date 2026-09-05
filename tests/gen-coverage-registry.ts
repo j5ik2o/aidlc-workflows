@@ -745,6 +745,7 @@ export function mechanismOfTestFile(fileName: string): Mechanism {
  *    - `driveAidlc(` ............ adds `sdk` (the Agent-SDK driver)
  *    - spawns `tui-drive.ts` .... adds `tui` (the painted-terminal driver)
  *    - `runOrchestrateNext(` .... adds `cli` (shared spawned-engine driver)
+ *    - `configureCodexHome(` ... adds `cli` (shared hook-trust command)
  *    - shipped-surface spawn .... adds `cli` (the literal shipped binary): `claude -p`,
  *                                 a runtime (`BUN`/`process.execPath`/`"bun"`/`"node"`)
  *                                 spawn whose argv targets an `aidlc-*.ts` tool, or a
@@ -778,9 +779,9 @@ export function mechanismsOf(fileName: string, src: string): Mechanism[] {
   if (/tui-drive\.ts/.test(code)) found.add("tui");
   // cli — driving a shipped binary as a subprocess (claude -p, an aidlc-*.ts tool
   // under the bun/node runtime, run-tests.sh under bash, or the shared
-  // runOrchestrateNext spawned-engine helper). See drivesCliSurface.
+  // runOrchestrateNext / configureCodexHome subprocess helpers). See drivesCliSurface.
   if (
-    /\brunOrchestrateNext\s*\(/.test(code) ||
+    /\b(?:runOrchestrateNext|configureCodexHome)\s*\(/.test(code) ||
     drivesCliSurface(code)
   ) {
     found.add("cli");

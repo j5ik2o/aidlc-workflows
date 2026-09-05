@@ -80,22 +80,10 @@ function emitConfigToml(): string {
   return `# dist/codex shipped config — copy into the project's .codex/config.toml
 # (trusted projects) or merge into ~/.codex/config.toml.
 #
-# Model: these session defaults are what judgment-tier agent roles inherit
-# (their TOMLs omit model/model_reasoning_effort by design - see the tier
-# projection); balanced/templated roles pin gpt-5.6-terra per the tier table.
-# D-9: Amazon Bedrock is the shipped default provider (web_search is
-# unavailable there; the market-research stage degrades gracefully). For
-# OpenAI-auth setups, comment out model_provider and the [model_providers]
-# block.
-model = "openai.gpt-5.5"
-model_provider = "amazon-bedrock"
-model_context_window = 1000000
-model_reasoning_effort = "high"
-
-[model_providers.amazon-bedrock.aws]
-# Set to your AWS profile/region with Bedrock model access.
-profile = "default"
-region = "us-east-1"
+# Model, provider, authentication, context window, and session effort inherit
+# the user's Codex configuration. Agent roles also inherit the session model.
+# Configure these in your user-level config.toml or choose a model in Codex.
+sandbox_mode = "workspace-write"
 
 # The AIDLC method (the markdown rule layers: org/team/project + phases/) now
 # lives at the workspace root under aidlc/spaces/<space>/memory/ — the single
@@ -116,8 +104,6 @@ set = { AIDLC_RULES_DIR = "aidlc/spaces/default/memory" }
 # escalations vanish. HEADLESS runs (codex exec workers, CI, test drivers)
 # cannot escalate: uncomment writable_roots with the MAIN repo's absolute
 # .git path (linked worktrees resolve into <main>/.git/worktrees/*).
-sandbox_mode = "workspace-write"
-
 [sandbox_workspace_write]
 network_access = true
 # writable_roots = ["/absolute/path/to/main-repo/.git"]

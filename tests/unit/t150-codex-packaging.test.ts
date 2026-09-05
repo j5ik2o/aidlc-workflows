@@ -36,10 +36,69 @@ import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { parse } from "smol-toml";
 import { REPO_ROOT } from "../harness/fixtures.ts";
+import { setupCodexProject } from "../harness/exec-drive.ts";
 
 const PACKAGE_SCRIPT = join(REPO_ROOT, "scripts", "package.ts");
 const CLAUDE_SRC = join(REPO_ROOT, "dist", "claude", ".claude");
 const CODEX_DST = join(REPO_ROOT, "dist", "codex", ".codex");
+
+describe("Codex user model configuration", () => {
+  test("live fixtures install the workspace and isolate the user's model and file authentication", () => {
+    const sourceHome = mkdtempSync(join(tmpdir(), "t150-codex-home-"));
+    let root: string | undefined;
+    try {
+      writeFileSync(join(sourceHome, "config.toml"), [
+        'model = "my-model"',
+        'model_reasoning_effort = "high"',
+        '[mcp_servers.unrelated]',
+        'command = "must-not-run"',
+        '[shell_environment_policy.set]',
+        'AIDLC_RULES_DIR = "obsolete/memory"',
+      ].join("\n"));
+      writeFileSync(join(sourceHome, "auth.json"), '{"fixture":"test-only"}');
+      const project = setupCodexProject({ sourceHome });
+      root = project.root;
+      const config = parse(readFileSync(join(project.home, "config.toml"), "utf-8"));
+      expect(config.model).toBe("my-model");
+      expect(config.model_reasoning_effort).toBe("high");
+      expect(config.model_provider).toBeUndefined();
+      expect(config.model_providers).toBeUndefined();
+      expect(config.mcp_servers).toBeUndefined();
+      expect(config.shell_environment_policy).toBeUndefined();
+      expect(config.projects).toEqual({ [project.proj]: { trust_level: "trusted" } });
+      expect(readFileSync(join(project.home, "auth.json"), "utf-8")).toBe('{"fixture":"test-only"}');
+      expect(readFileSync(join(project.proj, "aidlc/spaces/default/memory/org.md"), "utf-8")).not.toBeEmpty();
+      expect(readFileSync(join(sourceHome, "config.toml"), "utf-8")).toContain("must-not-run");
+    } finally {
+      if (root) rmSync(root, { recursive: true, force: true });
+      rmSync(sourceHome, { recursive: true, force: true });
+    }
+  });
+
+  test("the shipped session inherits the user's provider, model, and context limits", () => {
+    const config = parse(readFileSync(join(CODEX_DST, "config.toml"), "utf-8"));
+    for (const key of ["model", "model_provider", "model_providers", "model_context_window", "model_reasoning_effort"]) {
+      expect(config[key], key).toBeUndefined();
+    }
+  });
+
+  test("sandbox_mode is a root setting, not a shell environment policy field", () => {
+    const config = parse(readFileSync(join(CODEX_DST, "config.toml"), "utf-8"));
+    expect(config.sandbox_mode).toBe("workspace-write");
+    expect(config.shell_environment_policy).toEqual({
+      set: { AIDLC_RULES_DIR: "aidlc/spaces/default/memory" },
+    });
+  });
+
+  test("every delegated agent inherits the session model", () => {
+    const agents = readdirSync(join(CODEX_DST, "agents")).filter((file) => file.endsWith(".toml"));
+    expect(agents).toHaveLength(14);
+    for (const agent of agents) {
+      const config = parse(readFileSync(join(CODEX_DST, "agents", agent), "utf-8"));
+      expect(config.model, agent).toBeUndefined();
+    }
+  });
+});
 const TRUST_SUFFIXES = [
   "session_start:0:0",
   "user_prompt_submit:0:0",

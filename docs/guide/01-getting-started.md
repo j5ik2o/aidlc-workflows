@@ -37,7 +37,7 @@ The Claude Code distribution ships configured for **AWS Bedrock**. The shipped `
 ### Why Claude Code ships with Bedrock by default
 
 This rationale is specific to the Claude Code distribution. Provider setup is
-harness-specific: [Codex also defaults to Bedrock](harnesses/codex-cli.md#prerequisites),
+harness-specific: [Codex inherits your model and authentication](harnesses/codex-cli.md#prerequisites),
 while [opencode takes its session model from global configuration but pins its
 tiered personas to a Bedrock model](harnesses/opencode.md#prerequisites).
 

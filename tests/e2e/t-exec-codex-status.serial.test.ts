@@ -26,8 +26,7 @@
 //   - nothing is scaffolded by a read-only utility (no aidlc-docs creature).
 //
 // LIVE GATE: requires AIDLC_CODEX_EXEC_LIVE=1 + a codex >= 0.145.0 binary
-// (AIDLC_CODEX_BIN or PATH) + AWS creds for the Bedrock profile in
-// AIDLC_CODEX_AWS_PROFILE (default "codex"). Skips cleanly otherwise.
+// (AIDLC_CODEX_BIN or PATH) + working Codex authentication.
 
 import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
@@ -55,7 +54,7 @@ function codexVersionOk(): boolean {
 
 function skipReason(): string | null {
   if (process.env.AIDLC_CODEX_EXEC_LIVE !== "1") {
-    return "set AIDLC_CODEX_EXEC_LIVE=1 to run the live codex-exec journey (uses Bedrock)";
+    return "set AIDLC_CODEX_EXEC_LIVE=1 to run the live codex-exec journey";
   }
   if (!codexVersionOk()) return `codex >= 0.145.0 not found (AIDLC_CODEX_BIN=${CODEX_BIN})`;
   if (!existsSync(CODEX_DIST)) return `distributable missing: ${CODEX_DIST}`;

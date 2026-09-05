@@ -21,12 +21,12 @@
 // an @aidlc/spaces/<space>/memory/… mention" claim, live.
 //
 // LIVE GATE: requires AIDLC_CODEX_EXEC_LIVE=1 + a codex >= 0.145.0 binary
-// (AIDLC_CODEX_BIN or PATH) + AWS creds for the Bedrock profile in
-// AIDLC_CODEX_AWS_PROFILE (default "codex"). Skips cleanly otherwise.
+// (AIDLC_CODEX_BIN or PATH) + working Codex authentication.
 // Verified live 2026-06-24 (codex-cli 0.139.0, openai.gpt-5.5 on Bedrock):
 // the @-mention resolved org.md and the sentinel round-tripped (exit 0).
 
 import { describe, expect, test } from "bun:test";
+import { configureCodexHome } from "../harness/exec-drive.ts";
 import { spawnSync } from "node:child_process";
 import {
   appendFileSync,
@@ -36,7 +36,6 @@ import {
   mkdtempSync,
   realpathSync,
   rmSync,
-  writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -44,8 +43,6 @@ import { REPO_ROOT } from "../harness/fixtures.ts";
 
 const CODEX_DIST = join(REPO_ROOT, "dist", "codex");
 const CODEX_BIN = process.env.AIDLC_CODEX_BIN ?? "codex";
-const AWS_PROFILE = process.env.AIDLC_CODEX_AWS_PROFILE ?? "codex";
-const AWS_REGION = process.env.AIDLC_CODEX_AWS_REGION ?? "us-east-2";
 
 const TIMEOUT_S = Number.parseInt(process.env.AIDLC_TEST_TIMEOUT ?? "600", 10);
 const TEST_TIMEOUT_MS = (Number.isFinite(TIMEOUT_S) ? TIMEOUT_S : 600) * 1000;
@@ -65,7 +62,7 @@ function codexVersionOk(): boolean {
 
 function skipReason(): string | null {
   if (process.env.AIDLC_CODEX_EXEC_LIVE !== "1") {
-    return "set AIDLC_CODEX_EXEC_LIVE=1 to run the live codex-exec memory-include probe (uses Bedrock)";
+    return "set AIDLC_CODEX_EXEC_LIVE=1 to run the live codex-exec memory-include probe";
   }
   if (!codexVersionOk()) return `codex >= 0.145.0 not found (AIDLC_CODEX_BIN=${CODEX_BIN})`;
   if (!existsSync(CODEX_DIST)) return `distributable missing: ${CODEX_DIST}`;
@@ -75,7 +72,7 @@ const SKIP_REASON = skipReason();
 
 // A scratch install of the SHIPPED dist/codex tree (incl. the aidlc/ workspace
 // shell), git-initialized + trusted, with a scratch CODEX_HOME pointed at the
-// Bedrock provider. The sentinel is appended to the active space's org.md so a
+// user model/provider. The sentinel is appended to the active space's org.md so a
 // successful read proves the relocated method tree is reachable.
 function setupCodexProject(): { proj: string; home: string; root: string } {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "codex-mem-include-")));
@@ -103,31 +100,7 @@ function setupCodexProject(): { proj: string; home: string; root: string } {
     const r = spawnSync("git", args, { cwd: proj, encoding: "utf-8" });
     if (r.status !== 0) throw new Error(`git ${args[0]} failed: ${r.stderr}`);
   }
-  const trust = spawnSync(
-    "bun",
-    [join(REPO_ROOT, "scripts", "package.ts"), "codex", "trust", "--project", proj],
-    { encoding: "utf-8", cwd: REPO_ROOT },
-  );
-  if (trust.status !== 0) throw new Error(`trust emit failed: ${trust.stderr}`);
-  writeFileSync(
-    join(home, "config.toml"),
-    [
-      `model = "openai.gpt-5.5"`,
-      `model_provider = "amazon-bedrock"`,
-      `model_context_window = 1000000`,
-      `model_reasoning_effort = "low"`,
-      ``,
-      `[model_providers.amazon-bedrock.aws]`,
-      `profile = "${AWS_PROFILE}"`,
-      `region = "${AWS_REGION}"`,
-      ``,
-      `[projects."${proj}"]`,
-      `trust_level = "trusted"`,
-      ``,
-      trust.stdout,
-    ].join("\n"),
-    "utf-8",
-  );
+  configureCodexHome(proj, home);
   return { proj, home, root };
 }
 

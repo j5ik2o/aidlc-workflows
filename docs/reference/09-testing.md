@@ -83,6 +83,23 @@ Runs full workflows and verifies the experience: beyond state transitions, it ch
 
 **Run:** `bun tests/run-tests.ts --release`
 
+### Codex live tests
+
+The Codex journeys require `codex` >= 0.145.0 and working Codex authentication.
+Run the status smoke with:
+
+```bash
+AIDLC_CODEX_EXEC_LIVE=1 bun test tests/e2e/t-exec-codex-status.serial.test.ts
+```
+
+The driver copies model/provider settings and file-backed `auth.json` from
+`$CODEX_HOME` (or `~/.codex`) into a temporary home, adds project/hook trust,
+and deletes that home after the test. It does not copy user hooks, MCP servers,
+or sessions. Environment-based authentication remains inherited. The old
+`AIDLC_CODEX_AWS_PROFILE` and `AIDLC_CODEX_AWS_REGION` overrides are no longer used;
+configure your provider in the source Codex home instead. The full shipped
+`aidlc/` workspace is installed alongside `.codex/` and `.agents/`.
+
 ## Cross-Platform Coverage
 
 The test suite runs on macOS, Linux, and Windows through the native Bun runner:

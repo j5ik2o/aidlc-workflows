@@ -27,12 +27,12 @@
 //   5. `/aidlc space default` → A still resumable.
 //
 // LIVE GATE: requires AIDLC_CODEX_EXEC_LIVE=1 + a codex >= 0.145.0 binary
-// (AIDLC_CODEX_BIN or PATH) + AWS creds for the Bedrock profile in
-// AIDLC_CODEX_AWS_PROFILE (default "codex"). Skips cleanly otherwise. Serial.
+// (AIDLC_CODEX_BIN or PATH) + working Codex authentication. Serial.
 
 import { describe, expect, test } from "bun:test";
+import { configureCodexHome } from "../harness/exec-drive.ts";
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   activeSpace,
@@ -49,8 +49,6 @@ import {
 
 const CODEX_DIST = join(REPO_ROOT, "dist", "codex");
 const CODEX_BIN = process.env.AIDLC_CODEX_BIN ?? "codex";
-const AWS_PROFILE = process.env.AIDLC_CODEX_AWS_PROFILE ?? "codex";
-const AWS_REGION = process.env.AIDLC_CODEX_AWS_REGION ?? "us-east-2";
 
 // A multi-spawn live journey. codex exec is the slowest harness — even a "cheap"
 // verb spawn can run several minutes when the model reasons before invoking the
@@ -93,7 +91,7 @@ function codexVersionOk(): boolean {
 
 function skipReason(): string | null {
   if (process.env.AIDLC_CODEX_EXEC_LIVE !== "1") {
-    return "set AIDLC_CODEX_EXEC_LIVE=1 to run the live codex-exec workspace journey (uses Bedrock)";
+    return "set AIDLC_CODEX_EXEC_LIVE=1 to run the live codex-exec workspace journey";
   }
   if (!codexVersionOk()) return `codex >= 0.145.0 not found (AIDLC_CODEX_BIN=${CODEX_BIN})`;
   if (!existsSync(CODEX_DIST)) return `distributable missing: ${CODEX_DIST}`;
@@ -102,7 +100,7 @@ function skipReason(): string | null {
 const SKIP_REASON = skipReason();
 
 // The journey root with the codex shell, git-init'd + trusted + a CODEX_HOME
-// config.toml (Bedrock provider + project trust). Mirrors setupCodexProject in
+// config.toml (user model/authentication + project trust). Mirrors setupCodexProject in
 // t-exec-codex-status, but the project dir is the WORKSPACE ROOT carrying two
 // sibling repos (setupWorkspaceJourney) — the engine runs against the root.
 function setupCodexJourney(): WorkspaceJourney {
@@ -119,34 +117,7 @@ function setupCodexJourney(): WorkspaceJourney {
     const r = spawnSync("git", args, { cwd: root, encoding: "utf-8" });
     if (r.status !== 0) throw new Error(`git ${args[0]} failed: ${r.stderr}`);
   }
-  const trust = spawnSync(
-    "bun",
-    [join(REPO_ROOT, "scripts", "package.ts"), "codex", "trust", "--project", root],
-    { encoding: "utf-8", cwd: REPO_ROOT },
-  );
-  if (trust.status !== 0) throw new Error(`trust emit failed: ${trust.stderr}`);
-  writeFileSync(
-    join(home, "config.toml"),
-    [
-      `model = "openai.gpt-5.5"`,
-      `model_provider = "amazon-bedrock"`,
-      `model_context_window = 1000000`,
-      `model_reasoning_effort = "low"`,
-      ``,
-      `[model_providers.amazon-bedrock.aws]`,
-      `profile = "${AWS_PROFILE}"`,
-      `region = "${AWS_REGION}"`,
-      ``,
-      `[shell_environment_policy]`,
-      `set = { AIDLC_RULES_DIR = ".codex/aidlc-rules" }`,
-      ``,
-      `[projects."${root}"]`,
-      `trust_level = "trusted"`,
-      ``,
-      trust.stdout,
-    ].join("\n"),
-    "utf-8",
-  );
+  configureCodexHome(root, home);
   return journey;
 }
 

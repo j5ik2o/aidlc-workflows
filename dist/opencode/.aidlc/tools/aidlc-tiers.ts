@@ -24,11 +24,10 @@
 //                   today - see the note on TIER_PROJECTIONS.balanced - so do
 //                   not read two tier names as two distinct projections.
 //   - Codex CLI     agent role .toml: `model` and `model_reasoning_effort`.
-//                   Omitted keys fall back to the shipped .codex/config.toml
-//                   session defaults (live-verified on codex-cli 0.139.0 and
-//                   0.142.5: a role TOML without `model` spawns on the
-//                   config.toml model + effort). `judgment`
-//                   omits both keys.
+//                   All tiers inherit the user's session model so provider-
+//                   specific model IDs never leak across authentication modes.
+//                   `judgment` also inherits effort; `balanced` and `templated`
+//                   retain medium effort.
 //   - Kiro CLI/IDE  every tier omits `"model"` — Kiro agents INHERIT the
 //                   session model (a shipped model ID resolves only when that
 //                   model is enabled on the user's install; a session on
@@ -134,7 +133,7 @@ export const TIER_PROJECTIONS: Record<Tier, TierProjection> = {
     // of an xhigh-inheriting one with no verdict/finding quality loss. A
     // session pinned to xhigh was silently doubling every review's cost.
     claude: { model: "sonnet", effort: "medium" },
-    codex: { model: "openai.gpt-5.6-terra", effort: "medium" },
+    codex: { model: null, effort: "medium" },
     cursor: { model: null },
     kiro: { model: null },
     opencode: { model: "amazon-bedrock/global.anthropic.claude-sonnet-4-6", variant: "medium" },
@@ -144,7 +143,7 @@ export const TIER_PROJECTIONS: Record<Tier, TierProjection> = {
     // The pattern-following tier. It currently shares balanced's smaller-model,
     // reduced-effort projection, but remains distinct so either can be retuned.
     claude: { model: "sonnet", effort: "medium" },
-    codex: { model: "openai.gpt-5.6-terra", effort: "medium" },
+    codex: { model: null, effort: "medium" },
     kiro: { model: null },
     opencode: { model: "amazon-bedrock/global.anthropic.claude-sonnet-4-6", variant: "medium" },
     copilot: { model: null },

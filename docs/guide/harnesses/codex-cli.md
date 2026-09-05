@@ -16,11 +16,17 @@ never hand-edit it (the drift guard fails CI).
   `/aidlc --doctor` enforces the pin. Check with `codex --version`.
 - **bun** — same requirement as the Claude harness; every tool and hook runs
   via bun.
-- **A model provider** — the shipped `config.toml` defaults to **Amazon
-  Bedrock** (`openai.gpt-5.5`; agents on `openai.gpt-5.6-terra`). Set the AWS
-  profile/region in `[model_providers.amazon-bedrock.aws]`. For OpenAI auth,
-  comment out the provider lines. Note: `web_search` is unavailable on
-  Bedrock; the market-research stage degrades gracefully.
+- **Codex authentication** — use your existing Codex login and user-level
+  model/provider configuration. AI-DLC does not pin a provider, model, or
+  context window. All agent roles inherit the session model; balanced and
+  templated roles retain medium reasoning effort.
+
+**Upgrading from a Bedrock-configured install:** replace the shipped
+`.codex/config.toml` and agent files. If you previously merged AI-DLC's defaults
+into your user config, remove its `model_provider = "amazon-bedrock"` line,
+`[model_providers.amazon-bedrock.aws]` block, `openai.gpt-*` model pin, and
+fixed context/effort settings there too. Keep your own desired model and
+provider settings. No workflow state migration is needed.
 
 ## Install
 
@@ -94,8 +100,8 @@ cd aidlc-workflows
    opening a fresh Codex session; otherwise Codex silently skips the new hook.
 
 4. Back in `your-project/` (step 3 ran from the AI-DLC source checkout), merge
-   the shipped `.codex/config.toml` into your `~/.codex/config.toml` (or keep
-   it project-level — trusted projects read it). Verify with:
+   the shipped `.codex/config.toml` into your project configuration. Keep
+   model/provider settings in your user-level config. Verify with:
 
    ```bash
    cd your-project

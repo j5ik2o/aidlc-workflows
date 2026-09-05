@@ -4,14 +4,19 @@
 
 import { spawnSync } from "node:child_process";
 import {
+  chmodSync,
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   realpathSync,
+  rmSync,
+  readFileSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+import { parse, stringify, type TomlTable } from "smol-toml";
 import { REPO_ROOT } from "./fixtures.ts";
 
 const CODEX_DIST = join(REPO_ROOT, "dist", "codex");
@@ -24,8 +29,6 @@ const COPILOT_BIN = process.env.AIDLC_COPILOT_BIN ?? "copilot";
 const OPENCODE_BIN = process.env.AIDLC_OPENCODE_BIN ?? "opencode";
 const CURSOR_BIN = process.env.AIDLC_CURSOR_BIN ?? "agent";
 
-const AWS_PROFILE = process.env.AIDLC_CODEX_AWS_PROFILE ?? "codex";
-const AWS_REGION = process.env.AIDLC_CODEX_AWS_REGION ?? "us-east-2";
 const OPENCODE_MODEL =
   process.env.AIDLC_OPENCODE_MODEL ??
   "amazon-bedrock/global.anthropic.claude-sonnet-4-6";
@@ -58,60 +61,66 @@ export interface CodexProject {
   root: string;
 }
 
-// A scratch install: dist/codex copied verbatim, git-initialized (project
-// hooks.json discovery requires a git repo), a scratch CODEX_HOME with Bedrock
-// provider + project trust + the trust pre-seed from `package.ts codex trust`
-// so hooks fire with zero TUI passes.
-export function setupCodexProject(): CodexProject {
+export interface CodexHomeOptions {
+  sourceHome?: string;
+  writableRoots?: string[];
+}
+
+// Copy only model/authentication settings into the isolated test home. User
+// hooks, MCP servers, projects, and sessions must not become test dependencies.
+export function configureCodexHome(
+  proj: string,
+  home: string,
+  options: CodexHomeOptions = {},
+): void {
+  const sourceHome = options.sourceHome ?? process.env.CODEX_HOME ?? join(homedir(), ".codex");
+  const sourceConfig = join(sourceHome, "config.toml");
+  const source = existsSync(sourceConfig) ? parse(readFileSync(sourceConfig, "utf-8")) : {};
+  const config: TomlTable = {};
+  for (const key of [
+    "model", "model_provider", "model_providers", "model_reasoning_effort",
+    "model_context_window", "model_auto_compact_token_limit", "service_tier",
+    "cli_auth_credentials_store",
+  ]) {
+    if (source[key] !== undefined) config[key] = source[key];
+  }
+  config.projects = { [proj]: { trust_level: "trusted" } };
+  if (options.writableRoots?.length) {
+    config.sandbox_workspace_write = { writable_roots: options.writableRoots };
+  }
+  const trust = spawnSync(
+    "bun",
+    [join(REPO_ROOT, "scripts", "package.ts"), "codex", "trust", "--project", proj],
+    { encoding: "utf-8", cwd: REPO_ROOT },
+  );
+  if (trust.status !== 0) throw new Error(`trust emit failed: ${trust.stderr}`);
+  config.hooks = parse(trust.stdout).hooks;
+  mkdirSync(home, { recursive: true });
+  writeFileSync(join(home, "config.toml"), stringify(config), { mode: 0o600 });
+  const auth = join(sourceHome, "auth.json");
+  if (existsSync(auth)) {
+    const target = join(home, "auth.json");
+    cpSync(auth, target);
+    chmodSync(target, 0o600);
+  }
+}
+
+// Install the complete shipped tree, including the workspace method files.
+// Model/provider settings and file-backed authentication follow the caller's
+// Codex home; hook trust and session state remain isolated in the scratch home.
+export function setupCodexProject(options: CodexHomeOptions = {}): CodexProject {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "codex-exec-")));
   const proj = join(root, "proj");
   const home = join(root, "codex-home");
-  mkdirSync(home, { recursive: true });
-  cpSync(join(CODEX_DIST, ".codex"), join(proj, ".codex"), {
-    recursive: true,
-  });
-  cpSync(join(CODEX_DIST, ".agents"), join(proj, ".agents"), {
-    recursive: true,
-  });
-  cpSync(join(CODEX_DIST, "AGENTS.md"), join(proj, "AGENTS.md"));
-  initializeGit(proj);
-  const trust = spawnSync(
-    "bun",
-    [
-      join(REPO_ROOT, "scripts", "package.ts"),
-      "codex",
-      "trust",
-      "--project",
-      proj,
-    ],
-    { encoding: "utf-8", cwd: REPO_ROOT },
-  );
-  if (trust.status !== 0) {
-    throw new Error(`trust emit failed: ${trust.stderr}`);
+  try {
+    cpSync(CODEX_DIST, proj, { recursive: true });
+    initializeGit(proj);
+    configureCodexHome(proj, home, options);
+    return { proj, home, root };
+  } catch (error) {
+    rmSync(root, { recursive: true, force: true });
+    throw error;
   }
-  writeFileSync(
-    join(home, "config.toml"),
-    [
-      `model = "openai.gpt-5.5"`,
-      `model_provider = "amazon-bedrock"`,
-      `model_context_window = 1000000`,
-      `model_reasoning_effort = "low"`,
-      ``,
-      `[model_providers.amazon-bedrock.aws]`,
-      `profile = "${AWS_PROFILE}"`,
-      `region = "${AWS_REGION}"`,
-      ``,
-      `[shell_environment_policy]`,
-      `set = { AIDLC_RULES_DIR = ".codex/aidlc-rules" }`,
-      ``,
-      `[projects."${proj}"]`,
-      `trust_level = "trusted"`,
-      ``,
-      trust.stdout,
-    ].join("\n"),
-    "utf-8",
-  );
-  return { proj, home, root };
 }
 
 export interface ExecResult {

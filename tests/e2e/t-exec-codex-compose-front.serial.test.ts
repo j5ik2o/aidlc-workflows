@@ -45,10 +45,10 @@
 // cwd as beat 1 (both use the project dir).
 //
 // LIVE GATE: requires AIDLC_CODEX_EXEC_LIVE=1 + a codex >= 0.145.0 binary
-// (AIDLC_CODEX_BIN or PATH) + AWS creds for the Bedrock profile in
-// AIDLC_CODEX_AWS_PROFILE (default "codex"). Skips cleanly otherwise.
+// (AIDLC_CODEX_BIN or PATH) + working Codex authentication.
 
 import { describe, expect, test } from "bun:test";
+import { configureCodexHome } from "../harness/exec-drive.ts";
 import { spawnSync } from "node:child_process";
 import {
   cpSync,
@@ -59,7 +59,6 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
-  writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -86,8 +85,6 @@ const STOCK_SCOPES = new Set([
 
 const CODEX_DIST = join(REPO_ROOT, "dist", "codex");
 const CODEX_BIN = process.env.AIDLC_CODEX_BIN ?? "codex";
-const AWS_PROFILE = process.env.AIDLC_CODEX_AWS_PROFILE ?? "codex";
-const AWS_REGION = process.env.AIDLC_CODEX_AWS_REGION ?? "us-east-2";
 
 const TIMEOUT_S = Number.parseInt(process.env.AIDLC_TEST_TIMEOUT ?? "600", 10);
 const PER_BEAT_TIMEOUT_MS = (Number.isFinite(TIMEOUT_S) ? TIMEOUT_S : 600) * 1000;
@@ -106,7 +103,7 @@ function codexVersionOk(): boolean {
 
 function skipReason(): string | null {
   if (process.env.AIDLC_CODEX_EXEC_LIVE !== "1") {
-    return "set AIDLC_CODEX_EXEC_LIVE=1 to run the live codex-exec journey (uses Bedrock)";
+    return "set AIDLC_CODEX_EXEC_LIVE=1 to run the live codex-exec journey";
   }
   if (!codexVersionOk()) return `codex >= 0.145.0 not found (AIDLC_CODEX_BIN=${CODEX_BIN})`;
   if (!existsSync(CODEX_DIST)) return `distributable missing: ${CODEX_DIST}`;
@@ -115,7 +112,7 @@ function skipReason(): string | null {
 const SKIP_REASON = skipReason();
 
 // Same scratch-install shape as t-exec-codex-status (dist/codex verbatim,
-// git-initialized, Bedrock provider + project trust + hook trust pre-seed).
+// git-initialized, user model/authentication + project trust + hook trust pre-seed).
 function setupCodexProject(): { proj: string; home: string; root: string } {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "codex-exec-")));
   const proj = join(root, "proj");
@@ -124,6 +121,7 @@ function setupCodexProject(): { proj: string; home: string; root: string } {
   cpSync(join(CODEX_DIST, ".codex"), join(proj, ".codex"), { recursive: true });
   cpSync(join(CODEX_DIST, ".agents"), join(proj, ".agents"), { recursive: true });
   cpSync(join(CODEX_DIST, "AGENTS.md"), join(proj, "AGENTS.md"));
+  cpSync(join(CODEX_DIST, "aidlc"), join(proj, "aidlc"), { recursive: true });
   for (const args of [
     ["init", "-q"],
     ["add", "-A"],
@@ -132,50 +130,7 @@ function setupCodexProject(): { proj: string; home: string; root: string } {
     const r = spawnSync("git", args, { cwd: proj, encoding: "utf-8" });
     if (r.status !== 0) throw new Error(`git ${args[0]} failed: ${r.stderr}`);
   }
-  const trust = spawnSync(
-    "bun",
-    [join(REPO_ROOT, "scripts", "package.ts"), "codex", "trust", "--project", proj],
-    { encoding: "utf-8", cwd: REPO_ROOT },
-  );
-  if (trust.status !== 0) throw new Error(`trust emit failed: ${trust.stderr}`);
-  writeFileSync(
-    join(home, "config.toml"),
-    [
-      `model = "openai.gpt-5.5"`,
-      `model_provider = "amazon-bedrock"`,
-      `model_context_window = 1000000`,
-      `model_reasoning_effort = "low"`,
-      ``,
-      `[model_providers.amazon-bedrock.aws]`,
-      `profile = "${AWS_PROFILE}"`,
-      `region = "${AWS_REGION}"`,
-      ``,
-      `[shell_environment_policy]`,
-      `set = { AIDLC_RULES_DIR = ".codex/aidlc-rules" }`,
-      ``,
-      // Under workspace-write, codex carves the project-root `.codex/` out of
-      // the writable workspace root (the same read-only-by-design treatment it
-      // gives `.git/`), so the composer's sanctioned scope-file write
-      // (`.codex/scopes/aidlc-<name>.md` + the scope-grid entry) is EPERM-denied.
-      // An interactive session would escalate that denial to an approval; a
-      // headless `codex exec` run cannot, so it must grant the path up front.
-      // This is the codex-exec twin of the `.git` grant the shipped
-      // dist/codex/.codex/config.toml documents for headless runs. Granting it
-      // lets beat 2 prove the REAL product arc (scope persisted on the
-      // sanctioned path) rather than the model's env-seam improvisation.
-      // Path pinned by tmp/adaptive-workflows/spike-codex-resume/FINDINGS.md §5.
-      `sandbox_mode = "workspace-write"`,
-      ``,
-      `[sandbox_workspace_write]`,
-      `writable_roots = ["${join(proj, ".codex")}"]`,
-      ``,
-      `[projects."${proj}"]`,
-      `trust_level = "trusted"`,
-      ``,
-      trust.stdout,
-    ].join("\n"),
-    "utf-8",
-  );
+  configureCodexHome(proj, home, { writableRoots: [join(proj, ".codex")] });
   return { proj, home, root };
 }
 

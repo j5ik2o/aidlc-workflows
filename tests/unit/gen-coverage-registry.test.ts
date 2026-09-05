@@ -692,6 +692,11 @@ describe("mechanismsOf is body-derived (milestone 3)", () => {
     expect(mechanismsOf("t99.none.test.ts", src)).toEqual(["cli"]);
   });
 
+  test("configureCodexHome derives cli through the shared hook-trust command", () => {
+    expect(mechanismsOf("t99.none.test.ts", "configureCodexHome(project, home);")).toEqual(["cli"]);
+    expect(mechanismsOf("t99.none.test.ts", "// configureCodexHome(project, home);")).toEqual(["none"]);
+  });
+
   test("a // inside a string literal (a URL) does NOT truncate the real spawn", () => {
     // codeView strips comments while respecting string literals — so the "//" in
     // an "https://…" string is NOT treated as a line-comment opener. This fixture
@@ -981,7 +986,10 @@ describe("mechanismsOf is body-derived (milestone 3)", () => {
     "smoke/t148-kiro-file-structure.test.ts",
     "smoke/t86-stage-protocol-section-13.test.ts",
     "e2e/t-acp-kiro-new-work-routing.serial.test.ts",
+    "e2e/t-exec-codex-compose-front.serial.test.ts",
+    "e2e/t-exec-codex-compose-inflight.serial.test.ts",
     "e2e/t-exec-codex-journey-workspace.serial.test.ts",
+    "e2e/t-exec-codex-memory-include.serial.test.ts",
     "e2e/t-ide-kiro-checkpoint.serial.test.ts",
     "e2e/t-ide-kiro-new-work-routing.serial.test.ts",
     "e2e/t-tui-custom-harness.serial.test.ts",

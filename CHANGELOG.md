@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [2.7.2] - 2026-09-05
+
+Codex now uses the user's existing model and authentication instead of shipping Amazon Bedrock defaults. **Upgrade:** replace the Codex project config and agent files; remove any previously copied AI-DLC Bedrock provider block, provider-specific model IDs, and fixed context/effort settings from your user-level Codex config. Keep your own model/provider choices. No workflow state migration is required.
+
+* `$aidlc` and delegated agents inherit the Codex session model, avoiding unsupported `openai.gpt-*` model errors with ChatGPT authentication.
+* `codex --strict-config` accepts the shipped sandbox setting, which is now correctly placed at the TOML root.
+
 ## [2.7.1] - 2026-09-01
 
 Fix a Plan Approval deadlock that made Code Generation unreachable on solo (non-team) workflows. The Stop hook's read-only `next` probe published the durable active-directive marker on every turn boundary, which bumped the Code Generation authority revision and reset the plan-approval runtime, so the approval challenge minted while answering "Approve Plan" was destroyed before its receipt could be written. The probe no longer publishes that marker for any workflow, matching the read-only contract it already advertised. **Upgrade:** replace the `dist/<harness>/` tree; no workflow state migration is required. Closes #995.
