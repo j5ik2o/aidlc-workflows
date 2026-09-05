@@ -68,7 +68,15 @@ Fork releases use `<upstream-base>-j5ik2o.<revision>`, beginning with `2.7.1-j5i
 
 Update `core/tools/aidlc-version.ts`, the README badge, and the latest CHANGELOG heading together, then run `bun scripts/package.ts` and the version sync test. The README badge URL doubles literal hyphens (`version-2.7.1--j5ik2o.1-blue`). Preserve all historical CHANGELOG entries when merging upstream. The initial fork-only `2.7.2` label was corrected to `2.7.1-j5ik2o.1` to avoid a future upstream collision.
 
-Under [SemVer](https://semver.org/#spec-item-9), this suffix denotes a prerelease: `2.7.1-j5ik2o.1 < 2.7.1`. It identifies the fork revision and its upstream base; it does not rank the fork above upstream's plain release. Pin the complete fork version when selecting a release.
+The fork uses this release order:
+
+```text
+2.7.1 < 2.7.1-j5ik2o.1 < 2.7.1-j5ik2o.2 < 2.7.2 < 2.7.2-j5ik2o.1
+```
+
+Compare the upstream base numerically first, then treat a plain upstream release as fork revision 0 and compare fork revisions numerically (`.2 < .10`). The base stays unchanged until that upstream release is integrated. Do not increment the base patch to influence ordering.
+
+This is a project-specific ordering rule. [Standard SemVer](https://semver.org/#spec-item-9) treats `-j5ik2o.N` as a prerelease and therefore sorts it below the same plain base; SemVer tools do not implement the fork's order automatically. Current version reporting and consistency checks preserve the identifier without selecting upgrades. Any future version-selection or upgrade logic must explicitly implement the fork rule. Pin the complete fork version when using tools that only understand SemVer.
 
 ## Testing
 
