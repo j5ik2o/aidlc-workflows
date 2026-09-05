@@ -47,7 +47,7 @@ For the full architecture, see [reference/01-architecture.md](01-architecture.md
 3. **Understand the entry points** -- the deterministic engine `core/tools/aidlc-orchestrate.ts` (with exactly five subcommands: `next`, `continue`, `report`, `park`, and `team-board`; `continue` is internal steering transport and `team-board` is the read-only Team Construction query) owns routing; the conductor `harness/claude/skills/aidlc/SKILL.md` is a thin forwarding loop that acts on its directives. For the normative engine / directive / conductor / swarm contract see [The Skill System](17-skill-system.md)
 4. **Make changes** -- Edit the harness-neutral source in `core/` (tools, stages, agents, hooks, rules, knowledge) or a harness surface in `harness/<name>/` (the orchestrator skill, settings). Then run `bun scripts/package.ts` to regenerate `dist/` — never hand-edit `dist/`, the drift guard (`package.ts --check`) will fail CI
 5. **Test** -- Run `bun tests/run-tests.ts` before submitting
-6. **Submit** -- Open a PR against `main`
+6. **Submit** -- Open a PR against `main` in `j5ik2o/aidlc-workflows`. This fork follows an independent direction; upstream synchronization PRs also target this fork. Do not submit its changes to upstream.
 
 Release binary artifacts are not part of `dist/` and are not produced by the
 packager. After `bun scripts/package.ts --check` is clean, run
@@ -61,6 +61,14 @@ ordinary Bolt and autonomous swarm composition, packaged-runtime immutability, h
 adapters, and explicit project routing without a `bun` executable on `PATH`.
 The staged `runtime/<harness>/` trees are read-only fallbacks; mutating commands
 must target an installed project harness. Any failed gate fails the build.
+
+## Fork versioning
+
+Fork releases use `<upstream-base>-j5ik2o.<revision>`, beginning with `2.7.1-j5ik2o.1`. Increment the revision for each user-visible fork release on the same upstream base. After adopting upstream 2.7.2, use `2.7.2-j5ik2o.1`. Plain release numbers belong to upstream.
+
+Update `core/tools/aidlc-version.ts`, the README badge, and the latest CHANGELOG heading together, then run `bun scripts/package.ts` and the version sync test. The README badge URL doubles literal hyphens (`version-2.7.1--j5ik2o.1-blue`). Preserve all historical CHANGELOG entries when merging upstream. The initial fork-only `2.7.2` label was corrected to `2.7.1-j5ik2o.1` to avoid a future upstream collision.
+
+Under [SemVer](https://semver.org/#spec-item-9), this suffix denotes a prerelease: `2.7.1-j5ik2o.1 < 2.7.1`. It identifies the fork revision and its upstream base; it does not rank the fork above upstream's plain release. Pin the complete fork version when selecting a release.
 
 ## Testing
 

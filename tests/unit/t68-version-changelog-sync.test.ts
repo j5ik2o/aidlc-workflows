@@ -76,6 +76,7 @@ import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { headingsFrom } from "../../scripts/ci-changelog-guard.ts";
 import { AIDLC_SRC, REPO_ROOT } from "../harness/fixtures.ts";
 
 const BUN = process.execPath; // the bun running this test
@@ -84,33 +85,20 @@ const UTILITY_TS = join(AIDLC_SRC, "tools", "aidlc-utility.ts");
 const CHANGELOG = join(REPO_ROOT, "CHANGELOG.md");
 const README = join(REPO_ROOT, "README.md");
 
-const SEMVER = /[0-9]+\.[0-9]+\.[0-9]+/;
+const FORK_VERSION = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-j5ik2o\.[1-9][0-9]*$/;
 
-/** All `AIDLC_VERSION = "N.N.N"` literals in version.ts (defends against a
- *  merge-conflict marker leaving two assignments — the .sh's `head -1` + count). */
+/** Read the full identifier so suffixes cannot silently disappear. */
 function versionAssignments(): string[] {
   const src = readFileSync(VERSION_TS, "utf-8");
-  return [...src.matchAll(/AIDLC_VERSION = "([0-9]+\.[0-9]+\.[0-9]+)"/g)].map(
-    (m) => m[1],
-  );
+  return [...src.matchAll(/AIDLC_VERSION = "([^"\r\n]+)"/g)].map((m) => m[1]);
 }
 
-/** The first (latest, reverse-chronological) `## [N.N.N]` CHANGELOG heading. */
 function changelogHeadings(): string[] {
-  const src = readFileSync(CHANGELOG, "utf-8");
-  return src
-    .split("\n")
-    .filter((l) => /^## \[[0-9]+\.[0-9]+\.[0-9]+\]/.test(l))
-    .map((l) => (l.match(SEMVER) as RegExpMatchArray)[0]);
+  return headingsFrom(readFileSync(CHANGELOG, "utf-8"));
 }
 
-/** Every `[N.N.N]:` link-reference line at the bottom of CHANGELOG. */
-function changelogLinkRefs(): string[] {
-  const src = readFileSync(CHANGELOG, "utf-8");
-  return src
-    .split("\n")
-    .filter((l) => /^\[[0-9]+\.[0-9]+\.[0-9]+\]:/.test(l))
-    .map((l) => (l.match(SEMVER) as RegExpMatchArray)[0]);
+function changelogLinkRefs(src = readFileSync(CHANGELOG, "utf-8")): string[] {
+  return [...src.matchAll(/^\[([0-9][^\]\r\n]*)\]:/gm)].map((m) => m[1]);
 }
 
 describe("t68 version/CHANGELOG/README sync (migrated from t68-version-changelog-sync.sh, plan 6)", () => {
@@ -118,7 +106,7 @@ describe("t68 version/CHANGELOG/README sync (migrated from t68-version-changelog
   test("version.ts declares exactly one AIDLC_VERSION assignment [.sh test 1]", () => {
     const assigns = versionAssignments();
     expect(assigns.length).toBe(1);
-    expect(assigns[0]).toMatch(SEMVER);
+    expect(assigns[0]).toMatch(FORK_VERSION);
     expect(assigns[0].length).toBeGreaterThan(0);
   });
 
@@ -169,9 +157,10 @@ describe("t68 version/CHANGELOG/README sync (migrated from t68-version-changelog
     const tsVersion = versionAssignments()[0];
     const src = readFileSync(README, "utf-8");
     // Same extraction the .sh ran: between `badge/version-` and `-blue`.
-    const m = src.match(/badge\/version-([0-9]+\.[0-9]+\.[0-9]+)-blue/);
+    const m = src.match(/badge\/version-([^/\s)]+)-blue/);
     expect(m).not.toBeNull();
-    expect((m as RegExpMatchArray)[1]).toBe(tsVersion);
+    // Shields escapes a literal hyphen as two hyphens in static badge URLs.
+    expect((m as RegExpMatchArray)[1]).toBe(tsVersion.replaceAll("-", "--"));
   });
 
   // NET-NEW test 7: link-ref policy guard. Version link references were removed
@@ -193,5 +182,24 @@ describe("t68 version/CHANGELOG/README sync (migrated from t68-version-changelog
     ];
     const hits = banned.filter((b) => src.includes(b));
     expect(hits).toEqual([]);
+  });
+});
+
+describe("fork release identifiers", () => {
+  test("CHANGELOG guards distinguish upstream and successive fork releases", () => {
+    const versions = ["2.7.1-j5ik2o.2", "2.7.1-j5ik2o.1", "2.7.1"];
+    const headings = headingsFrom(versions.map((v) => `## [${v}] - 2026-09-05`).join("\n"));
+    expect(headings).toEqual(versions);
+    const afterRemoval = new Set(headingsFrom("## [2.7.1-j5ik2o.2] - 2026-09-05\n## [2.7.1] - 2026-09-01"));
+    expect(headings.filter((v) => !afterRemoval.has(v))).toEqual(["2.7.1-j5ik2o.1"]);
+  });
+
+  test("duplicate fork headings remain visible to the uniqueness guard", () => {
+    const headings = headingsFrom("## [2.7.1-j5ik2o.1]\n## [2.7.1-j5ik2o.1]");
+    expect(headings.filter((v, i) => headings.indexOf(v) !== i)).toEqual(["2.7.1-j5ik2o.1"]);
+  });
+
+  test("the link-reference policy also covers fork versions", () => {
+    expect(changelogLinkRefs("[2.7.1-j5ik2o.1]: forbidden-link")).toEqual(["2.7.1-j5ik2o.1"]);
   });
 });

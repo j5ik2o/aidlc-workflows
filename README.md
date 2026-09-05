@@ -1,5 +1,7 @@
 # AI-DLC — one core, many harnesses
 
+This is the independently developed `j5ik2o` fork. Releases use an upstream base plus a `-j5ik2o.N` suffix; see [fork versioning](docs/reference/11-contributing.md#fork-versioning).
+
 ## AI-DLC Workflows 2.0 is GA on `main`
 
 AI-DLC Workflows 2.0 is **GA** on this repository's default `main` branch. Use
@@ -15,7 +17,7 @@ A native implementation of the **AI-DLC methodology** (AI-Driven Development Lif
 
 The methodology lives once, in a harness-neutral `core/`; each harness adds a thin surface that decides how it shows up on that harness. So you edit the methodology in one place, and every harness distribution is generated from it — no harness gets special treatment. (See [Repository layout](#repository-layout) for how the pieces fit together.)
 
-![version](https://img.shields.io/badge/version-2.7.2-blue)
+![version](https://img.shields.io/badge/version-2.7.1--j5ik2o.1-blue)
 ![license](https://img.shields.io/badge/license-MIT--0-green)
 ![Kiro IDE](https://img.shields.io/badge/harness-Kiro%20IDE-orange)
 ![Kiro CLI](https://img.shields.io/badge/harness-Kiro%20CLI-orange)

@@ -236,7 +236,7 @@ function formatSeconds(ms: number): number {
 
 function stampedVersion(stdout: string): string {
   const trimmed = stdout.trim();
-  const prefixed = /^aidlc\s+([0-9]+\.[0-9]+\.[0-9]+)$/.exec(trimmed);
+  const prefixed = /^aidlc\s+(\S+)$/.exec(trimmed);
   return prefixed?.[1] ?? trimmed;
 }
 

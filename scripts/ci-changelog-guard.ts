@@ -19,19 +19,12 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// Same shape t68 pins: `## [N.N.N]` at line start. Kept in lock-step so the two
-// guards never disagree about what counts as a heading.
-const HEADING_LINE = /^## \[[0-9]+\.[0-9]+\.[0-9]+\]/;
-const SEMVER = /[0-9]+\.[0-9]+\.[0-9]+/;
-
 const REPO_ROOT = join(import.meta.dir, "..");
 const CHANGELOG_PATH = join(REPO_ROOT, "CHANGELOG.md");
 
-function headingsFrom(text: string): string[] {
-  return text
-    .split("\n")
-    .filter((l) => HEADING_LINE.test(l))
-    .map((l) => (l.match(SEMVER) as RegExpMatchArray)[0]);
+// Preserve the complete version identifier, including fork suffixes.
+export function headingsFrom(text: string): string[] {
+  return [...text.matchAll(/^## \[([0-9][^\]\r\n]*)\]/gm)].map((m) => m[1]);
 }
 
 function baseChangelog(baseRef: string): string {
@@ -92,4 +85,4 @@ function main(): void {
   );
 }
 
-main();
+if (import.meta.main) main();

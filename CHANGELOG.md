@@ -1,9 +1,9 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [2.7.2] - 2026-09-05
+## [2.7.1-j5ik2o.1] - 2026-09-05
 
-Codex now uses the user's existing model and authentication instead of shipping Amazon Bedrock defaults. **Upgrade:** replace the Codex project config and agent files; remove any previously copied AI-DLC Bedrock provider block, provider-specific model IDs, and fixed context/effort settings from your user-level Codex config. Keep your own model/provider choices. No workflow state migration is required.
+This fork release is based on upstream 2.7.1 and replaces the fork-only 2.7.2 label. Future fork revisions increment the `j5ik2o.N` suffix. Codex now uses the user's existing model and authentication instead of shipping Amazon Bedrock defaults. **Upgrade:** replace the Codex project config and agent files; remove any previously copied AI-DLC Bedrock provider block, provider-specific model IDs, and fixed context/effort settings from your user-level Codex config. Keep your own model/provider choices. No workflow state migration is required.
 
 * `$aidlc` and delegated agents inherit the Codex session model, avoiding unsupported `openai.gpt-*` model errors with ChatGPT authentication.
 * `codex --strict-config` accepts the shipped sandbox setting, which is now correctly placed at the TOML root.
