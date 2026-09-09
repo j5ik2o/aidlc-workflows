@@ -48,10 +48,22 @@ export type UpdateState = {
   message: string;
 };
 
+// The fork's release order, implemented explicitly because standard SemVer
+// gets it wrong: compare the upstream base numerically first, then treat a
+// plain upstream release as fork revision 0 and compare revisions numerically.
+// So 2.7.1 < 2.7.1-j5ik2o.1 < 2.7.1-j5ik2o.2 < 2.7.2 < 2.7.2-j5ik2o.1.
+// SemVer would instead sort `-j5ik2o.N` BELOW its own base, which would make a
+// fork install look newer than the upstream release it is built on.
+// See AGENTS.md § Fork and Changelog Policy.
+function versionParts(value: string): number[] {
+  const [base, revision] = requireVersion(value).split("-j5ik2o.");
+  return [...base.split(".").map(Number), revision === undefined ? 0 : Number(revision)];
+}
+
 function compareSemver(left: string, right: string): number {
-  const a = requireVersion(left).split(".").map(Number);
-  const b = requireVersion(right).split(".").map(Number);
-  for (let index = 0; index < 3; index++) {
+  const a = versionParts(left);
+  const b = versionParts(right);
+  for (let index = 0; index < 4; index++) {
     if (a[index] !== b[index]) return a[index] < b[index] ? -1 : 1;
   }
   return 0;

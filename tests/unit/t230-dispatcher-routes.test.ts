@@ -1389,7 +1389,7 @@ describe("t230 dispatcher global flag translation", () => {
     );
     expect(active.exitCode).toBe(0);
     expect(active.stdout.toString()).toMatch(
-      /^aidlc \d+\.\d+\.\d+ \(runtime \d+\.\d+\.\d+\)\n$/,
+      /^aidlc \d+\.\d+\.\d+(?:-j5ik2o\.\d+)? \(runtime \d+\.\d+\.\d+(?:-j5ik2o\.\d+)?\)\n$/,
     );
     expect(active.stderr.toString()).not.toContain("this project requires");
 

@@ -380,7 +380,7 @@ actual_manifest=$(sha256_file "$TMP/version.json")
 [ "$actual_manifest" = "$expected_manifest" ] || {
   fail 4 failed "Checksum mismatch for version.json."
 }
-candidate_version=$(sed -n 's/.*"version":[[:space:]]*"\([0-9][0-9.]*\)".*/\1/p' "$TMP/version.json" | head -n 1)
+candidate_version=$(sed -n 's/.*"version":[[:space:]]*"\([0-9][0-9A-Za-z.-]*\)".*/\1/p' "$TMP/version.json" | head -n 1)
 printf '%s\n' "$candidate_version" |
   grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-j5ik2o\.(0|[1-9][0-9]*))?$' ||
   fail 4 failed "version.json has no valid version."

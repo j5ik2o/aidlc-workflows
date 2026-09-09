@@ -80,7 +80,10 @@ beforeAll(() => {
   }`;
 });
 function patchVersion(offset: number): string {
-  const [major, minor, patch] = AIDLC_VERSION.split(".").map(Number);
+  // A fork release is `<upstream-base>-j5ik2o.<revision>`, so the patch number
+  // to offset lives in the base, not in the trailing revision.
+  const base = AIDLC_VERSION.split("-j5ik2o.")[0];
+  const [major, minor, patch] = base.split(".").map(Number);
   return `${major}.${minor}.${patch + offset}`;
 }
 const NEXT_VERSION = patchVersion(1);

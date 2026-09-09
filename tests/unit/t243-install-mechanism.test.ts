@@ -98,7 +98,10 @@ const KIRO_RELEASES = [
   join(REPO_ROOT, "dist-release", "kiro-ide"),
 ] as const;
 const NEXT_VERSION = (() => {
-  const [major, minor, patch] = AIDLC_VERSION.split(".").map(Number);
+  // A fork release is `<upstream-base>-j5ik2o.<revision>`, so the patch number
+  // to bump lives in the base, not in the trailing revision.
+  const base = AIDLC_VERSION.split("-j5ik2o.")[0];
+  const [major, minor, patch] = base.split(".").map(Number);
   return `${major}.${minor}.${patch + 1}`;
 })();
 const temporary: string[] = [];
@@ -2080,7 +2083,7 @@ describe("t243 release lifecycle", () => {
   test("opt-in live release endpoint matches the fixture contract", async () => {
     if (process.env.AIDLC_RELEASE_CONTRACT_LIVE !== "1") return;
     const checked = await checkLiveReleaseContract(process.env.AIDLC_RELEASE_BASE_URL);
-    expect(checked.version).toMatch(/^\d+\.\d+\.\d+$/);
+    expect(checked.version).toMatch(/^\d+\.\d+\.\d+(?:-j5ik2o\.\d+)?$/);
     expect(checked.assets).toContain("install.sh");
   }, 30_000);
 
@@ -3774,7 +3777,11 @@ describe("t243 projection channel", () => {
           "sha256:bc41aca84970977673af3c0b8212a1f7a4d995a4b47fc7894b1c5b342e4a3601",
           "sha256:b3d4d0d178a01591629dbf79083b00e7a3ad42f59f79cbfc88d05b7615704a70",
           "sha256:d9be36630b49183203ae4d97946c243e3b8840202ee6f080c738e0f01343e33a",
-          "sha256:cc3212fc7335018158882cbaa141ac6fd02cee53bbceb00bd185f416fa06ff8f",
+          // The packager appends the currently shipped file's hash. This fork's
+          // Codex AGENTS.md documents session-model inheritance instead of the
+          // Bedrock provider defaults, so its bytes — and this entry — differ
+          // from upstream's.
+          "sha256:5f4a6c68f0ad59a3d9c53b7fde9c3edb3bb82d8961bd3680470331d16ebbaef7",
         ],
       },
       kiro: {

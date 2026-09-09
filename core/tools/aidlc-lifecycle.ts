@@ -290,7 +290,7 @@ function reservedVersions(): Set<string> {
   const root = reservationRoot();
   if (!existsSync(root)) return reserved;
   for (const entry of readdirSync(root)) {
-    const match = /^(\d+\.\d+\.\d+)-(\d+)-[a-f0-9-]+$/.exec(entry);
+    const match = /^(\d+\.\d+\.\d+(?:-j5ik2o\.\d+)?)-(\d+)-[a-f0-9-]+$/.exec(entry);
     const path = join(root, entry);
     if (!match || !lstatSync(path).isFile()) {
       reserved.add("*");
@@ -485,7 +485,7 @@ function readPinRegistry(reconcileProject?: string): PinRegistry {
   }
   for (const [canonical, entries] of groups) {
     const malformed = entries.filter(([, rawVersion]) =>
-      typeof rawVersion !== "string" || !/^\d+\.\d+\.\d+$/.test(rawVersion)
+      typeof rawVersion !== "string" || !STRICT_SEMVER.test(rawVersion)
     );
     if (malformed.length > 0) {
       for (const [project] of malformed) {
@@ -770,7 +770,7 @@ function retainedVersions(): {
   const rollback = existsSync(rollbackVersionPath())
     ? readFileSync(rollbackVersionPath(), "utf-8").trim()
     : null;
-  const versions = readdirSync(versionsRoot()).filter((entry) => /^\d+\.\d+\.\d+$/.test(entry)).sort()
+  const versions = readdirSync(versionsRoot()).filter((entry) => STRICT_SEMVER.test(entry)).sort()
     .map((version) => ({
       version,
       active: version === active,
@@ -987,6 +987,17 @@ function unixShim(): string {
     "}",
     "valid_version() {",
     "  version_value=$1",
+    // This fork's releases carry an `-j5ik2o.<revision>` suffix on the
+    // upstream base (AGENTS.md § Fork and Changelog Policy). Split it off and
+    // validate the revision, then validate the base exactly as upstream does.
+    "  case \"$version_value\" in",
+    "    *-j5ik2o.*)",
+    "      revision_value=${version_value#*-j5ik2o.}",
+    "      version_value=${version_value%-j5ik2o.*}",
+    "      valid_number \"$revision_value\" || return 1",
+    "      ;;",
+    "    *-*) return 1 ;;",
+    "  esac",
     "  case \"$version_value\" in *[!0-9.]*|'') return 1 ;; esac",
     "  old_ifs=$IFS",
     "  IFS=.",
