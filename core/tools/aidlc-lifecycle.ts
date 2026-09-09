@@ -992,7 +992,9 @@ function unixShim(): string {
     // validate the revision, then validate the base exactly as upstream does.
     "  case \"$version_value\" in",
     "    *-j5ik2o.*)",
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: POSIX shell parameter expansion emitted into the launcher, not a JS template placeholder.
     "      revision_value=${version_value#*-j5ik2o.}",
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: POSIX shell parameter expansion emitted into the launcher, not a JS template placeholder.
     "      version_value=${version_value%-j5ik2o.*}",
     "      valid_number \"$revision_value\" || return 1",
     "      ;;",
