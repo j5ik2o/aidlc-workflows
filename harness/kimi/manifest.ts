@@ -29,12 +29,24 @@ import onboardingFills from "./onboarding.fills.ts";
 
 const manifest: HarnessManifest = {
   name: "kimi",
+  productName: "Kimi Code",
+  configNextStep:
+    "append `.kimi-code/hooks.snippet.toml` to your user-level Kimi config, open Kimi Code in this project, then run `/skill:aidlc --doctor`",
   harnessDir: ".kimi-code",
   orchestratorSkillPath: ".kimi-code/skills/aidlc/SKILL.md",
   // Deliberate reuse of the claude tier column: Kimi ignores unknown
   // frontmatter keys in skill/agent files, so the claude projection shape
   // loads unchanged and no new tier flavor is needed.
   tierFlavor: "claude",
+
+  // Project-root files this distribution owns. Kimi ships the same two as
+  // Copilot: the managed .gitignore block and the auto-read AGENTS.md. The
+  // hook snippet is NOT a root integration — it lands inside .kimi-code/ and
+  // the user appends it to the user-level Kimi config by hand.
+  rootIntegrations: [
+    { path: ".gitignore", policy: "managed-block", marker: "gitignore" },
+    { path: "AGENTS.md", policy: "managed-block", marker: "agents" },
+  ],
 
   // core/<src> → <harnessDir>/<dst>. Kimi keeps every core dir name as-is,
   // exactly the claude list. The method ("memory") is NOT a core dir — it

@@ -215,7 +215,7 @@ const projectEnv = {
 function coreCommand(hookFile: string): string[] | null {
   const executable = process.env.AIDLC_COMPILED_EXECUTABLE;
   if (executable) {
-    return [executable, "hook", hookFile.replace(/^aidlc-|\.ts$/g, "")];
+    return [executable, "engine", "hook", hookFile.replace(/^aidlc-|\.ts$/g, "")];
   }
   const hookPath = join(HOOKS_DIR, hookFile);
   if (!existsSync(hookPath)) return null; // no AI-DLC install here — fail open

@@ -1,12 +1,56 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [2.8.1-j5ik2o.1] - 2026-09-10
+
+This fork release rebases the fork onto upstream 2.8.1 and keeps the fork-only changes: the Kimi Code harness and the Codex model/authentication inheritance. **Upgrade:** regenerate the harness projections with `bun scripts/package.ts`; `dist/` and `dist-release/` are now ignored local build outputs, so an existing checkout should drop its committed `dist/` tree. Kimi Code users reinstall `.kimi-code/` from the regenerated projection because native invocation spellings and the doctor remediation text changed.
+
+* The Kimi Code harness now follows the 2.8.1 distribution contract: it builds a native `dist-release/kimi/` projection, is picked up automatically by the binary build, and its hooks and skill prose resolve through the projected `aidlc` invocation instead of hard-coded `bun .kimi-code/tools/*.ts` commands.
+* `aidlc doctor` on Kimi Code now proposes `aidlc config --force` (or a git restore) instead of copying from the no-longer-committed `dist/kimi/` directory.
+* Fork versions are installable again on the 2.8.x lifecycle: projection stamps, release directory names, project pins, the Windows launcher shims, and both installers accept an `<upstream-base>-j5ik2o.<revision>` version, where upstream 2.8.1 accepted only plain `X.Y.Z`. Without this, every 2.8.1 doctor and config surface reported `no installed project harness` on a fork install.
+* Kimi Code hooks dispatch through `aidlc engine adapter kimi <target>` on the native channel, so each hook keeps its target argument. The user-level `~/.kimi-code/config.toml` snippet changed spelling; re-append it after upgrading, and `aidlc doctor` accepts either spelling while you do.
+* `aidlc config --harness kimi` now configures a project the same way as the other harnesses, reconciling the project-root `AGENTS.md` and `.gitignore` under managed blocks instead of asking you to copy files by hand.
+* The Kimi unit tests moved to `t338-kimi-hook-adapter` and `t339-kimi-doctor-hooks` because upstream 2.8.1 claimed the previous `t331`/`t332` numbers.
+* Codex still inherits your session model, provider, authentication, context window, and reasoning effort; no Bedrock provider block or `openai.gpt-*` model pin ships in the Codex distribution.
+
+## [2.8.1] - 2026-09-08
+
+Fix defects found while exercising the 2.8.0 native install: the guided `aidlc config` setup cancelled itself when Enter was pressed to accept a default, `aidlc update` on an already-current install failed its integrity check under a normal shell umask, and every native GitHub Copilot and Cursor hook was dead because the 2.8.0 packager projected those adapters onto the one-argument core-hook route. **Upgrade:** `aidlc update`, or `install.sh --version 2.8.1` / `install.ps1 -Version 2.8.1`. Copilot and Cursor projects configured by 2.8.0 work as soon as the binary is updated: their existing `aidlc engine hook <harness>-adapter ...` wiring is accepted, and the 2.8.0 Copilot adapter still installed in the project (whose core-hook calls are the bare `aidlc hook <name>`) is accepted too. `aidlc config` in the project then rewrites the wiring to the canonical `aidlc engine adapter <harness> ...` spelling and installs the current adapter — Cursor's merged `.cursor/hooks.json` collapses every earlier AI-DLC spelling of an entry (bun-era and 2.8.0) into the one shipped entry instead of leaving duplicates that keep executing, and Copilot's `.github/hooks/aidlc.json` is regenerated.
+
+* Pressing Enter at a bracketed default in the first-run `aidlc config` wizard (harness picker, provider, region, preset, plugins, MCP, record layer, and the final `Apply? [Y/n]` gate) now accepts the default as advertised instead of printing `Nothing written.` and exiting 2. Closing stdin (Ctrl-D) still cancels.
+* `aidlc update` on an install that is already at the latest release now reports `You're on the latest version of aidlc (X.Y.Z).` regardless of the caller's umask; previously it failed with `existing X.Y.Z runtime does not match the verified release` (exit 4) unless the shell umask was `077`. Same-release identity is now decided by path set and content; the installed tree's modes are still enforced against its own recorded integrity baseline, so trees installed by 2.8.0 under any umask keep working. `aidlc update --dry-run` on a current install says so instead of `Would update aidlc from X to X.`
+* `aidlc doctor` no longer tells you to copy the workspace shell from `dist/<harness>/`; the remediation is `aidlc config`.
+* README: removed the pre-2.8.0 note that told users to install from a source checkout until native assets shipped.
+* GitHub Copilot hooks no longer fail on every event with `aidlc: undefined is not an object (evaluating 'input.length')`; the adapter's delegated audit, sensor, guard, state, and Stop hooks now run through `aidlc engine hook <name>` under the native binary.
+* Cursor IDE `failClosed` `preToolUse` hooks now emit `{"permission":"allow"}` on allowed tools instead of returning no output (`Hook ... returned no output`) and blocking every tool call; deny decisions continue to emit Cursor permission-deny JSON.
+* Native hook wiring dispatches through `aidlc engine adapter copilot <target>` and `aidlc engine adapter cursor <target>`, preserving each adapter's target and stdin payload. Closes #1061 and #1058.
+
+## [2.8.0] - 2026-09-08
+
+AI-DLC 2.8.0 consolidates the 2.7.x release cycle into a new minor baseline without changing runtime behavior from 2.7.2. **Upgrade:** use `install.sh --version 2.8.0`, `install.ps1 -Version 2.8.0`, or replace a manual copy with `runtime/<harness>/` from `aidlc-runtime-2.8.0.tar.gz`. Existing 2.7.2 workflow records require no migration. Upgrades from earlier releases must still apply every intervening **Upgrade**, **Breaking**, and migration note below.
+
+* `aidlc version` now reports `2.8.0` on Claude Code, Codex CLI, GitHub Copilot, Cursor, Kiro CLI, Kiro IDE, and opencode.
+* Solo Code Generation includes the 2.7.1 Plan Approval deadlock fix, so the Stop hook no longer invalidates approval authority at turn boundaries.
+* Native installers and release archives include the 2.7.2 tag-bound provenance and verification flow; release assets use the `aidlc-runtime-X.Y.Z.tar.gz` naming contract.
+* Breaking changes for CI/scripts: none beyond selecting the new `2.8.0` version and asset name.
+
+## [2.7.2] - 2026-09-07
+
+Bind native releases to the version tag that triggered them and include that version in the runtime archive name. **Upgrade:** use `install.sh --version 2.7.2`, `install.ps1 -Version 2.7.2`, or replace a manual copy with `runtime/<harness>/` from `aidlc-runtime-2.7.2.tar.gz`.
+
+* Pushing a `vX.Y.Z` tag now starts the release workflow. The workflow rejects a tag that does not match `AIDLC_VERSION`, does not point to its checked-out commit, or does not belong to `main`.
+* Release manifests and provenance now bind to `refs/tags/vX.Y.Z` instead of `refs/heads/main`.
+* The runtime asset is now named `aidlc-runtime-X.Y.Z.tar.gz`, and the README documents how to use it as the release equivalent of a generated `dist/<harness>/` directory.
+* GitHub CLI is optional for native installs. Compatible versions verify the signed release attestation; missing or older versions continue with source identity checks and SHA-256 verification, while online downloads remain HTTPS-only.
+
+
 ## [2.7.1-j5ik2o.1] - 2026-09-05
 
 This fork release is based on upstream 2.7.1 and replaces the fork-only 2.7.2 label. Future fork revisions increment the `j5ik2o.N` suffix. Codex now uses the user's existing model and authentication instead of shipping Amazon Bedrock defaults. **Upgrade:** replace the Codex project config and agent files; remove any previously copied AI-DLC Bedrock provider block, provider-specific model IDs, and fixed context/effort settings from your user-level Codex config. Keep your own model/provider choices. No workflow state migration is required.
 
 * `$aidlc` and delegated agents inherit the Codex session model, avoiding unsupported `openai.gpt-*` model errors with ChatGPT authentication.
 * `codex --strict-config` accepts the shipped sandbox setting, which is now correctly placed at the TOML root.
+
 
 ## [2.7.1] - 2026-09-01
 
