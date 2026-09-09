@@ -647,6 +647,11 @@ const HARNESS_CLI: Record<
     required: true,
     install: "Install opencode and ensure `opencode --version` works.",
   },
+  kimi: {
+    command: "kimi",
+    required: true,
+    install: "Install Kimi Code and ensure `kimi --version` works.",
+  },
 };
 
 function versionTuple(value: string): [number, number, number] | null {
@@ -982,27 +987,10 @@ function writeClaudeProvider(
   writeJson(mcpPath, mcp);
 }
 
-function writeCodexProvider(
-  projectionRoot: string,
-  harnessDir: string,
-  record: ProvidersRecord,
-): void {
-  const path = join(projectionRoot, harnessDir, "config.toml");
-  const content = readFileSync(path, "utf-8");
-  const section = /(\[model_providers\.amazon-bedrock\.aws\]\r?\n)([\s\S]*?)(?=\r?\n\[|$)/;
-  const match = section.exec(content);
-  if (!match) throw new Error(`${path}: missing amazon-bedrock aws provider section`);
-  const profile = record.profile ?? "default";
-  const lines = match[2].split(/\r?\n/).map((line) => {
-    if (/^profile\s*=/.test(line)) return `profile = ${JSON.stringify(profile)}`;
-    if (/^region\s*=/.test(line)) return `region = ${JSON.stringify(record.region)}`;
-    return line;
-  });
-  writeFileSync(
-    path,
-    content.replace(section, () => `${match[1]}${lines.join("\n")}`),
-  );
-}
+// This fork ships no Bedrock provider block in the Codex config: Codex
+// inherits the user's model, provider, and authentication, so `aidlc config`
+// has no Codex provider surface to write, list, or drift-check. See
+// docs/guide/harnesses/codex-cli.md § Prerequisites.
 
 function writeKiroProvider(
   projectionRoot: string,
@@ -1084,8 +1072,6 @@ export function applyConfigDiagnosticRecords(
   if (provider?.provider !== "amazon-bedrock" || !provider.region) return;
   if (harness === "claude") {
     writeClaudeProvider(projectionRoot, harnessDir, provider);
-  } else if (harness === "codex") {
-    writeCodexProvider(projectionRoot, harnessDir, provider);
   } else if (harness === "kiro") {
     writeKiroProvider(projectionRoot, harnessDir, provider);
   } else if (harness === "opencode") {
@@ -1116,11 +1102,6 @@ export function providerFiles(
         file: ".mcp.json",
       });
     }
-  } else if (harness === "codex") {
-    files.push({
-      setting: "Bedrock AWS region and profile",
-      file: join(harnessDir, "config.toml"),
-    });
   } else if (harness === "kiro") {
     files.push({
       setting: "AWS MCP region endpoint and metadata",
@@ -1542,15 +1523,6 @@ function providerValueIssues(
         ) {
           mismatch("provider-claude-mcp", mcpPath, "Claude AWS MCP settings do not reflect the recorded region");
         }
-      }
-    } else if (harness === "codex") {
-      const path = join(projectDir, harnessDir, "config.toml");
-      const text = readFileSync(path, "utf-8");
-      if (
-        !text.includes(`region = ${JSON.stringify(record.region)}`) ||
-        !text.includes(`profile = ${JSON.stringify(record.profile ?? "default")}`)
-      ) {
-        mismatch("provider-codex", path, "Codex Bedrock settings do not reflect the recorded region/profile");
       }
     } else if (harness === "kiro") {
       const path = join(projectDir, harnessDir, "settings", "mcp.json");

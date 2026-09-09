@@ -32,6 +32,7 @@ const HARNESS_NAMES = [
   "kiro",
   "kiro-ide",
   "opencode",
+  "kimi",
 ] as const;
 
 afterAll(() => {

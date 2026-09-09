@@ -356,14 +356,11 @@ describe("t294 provider diagnostics", () => {
       emptyRecords(record),
     );
     const codexAfter = readFileSync(join(codex, ".codex", "config.toml"), "utf-8");
-    expect(codexAfter).toContain('profile = "dev"');
-    expect(codexAfter).toContain('region = "eu-west-1"');
-    expect(codexAfter.match(/^model\s*=.*$/m)?.[0]).toBe(
-      codexBefore.match(/^model\s*=.*$/m)?.[0],
-    );
-    expect(codexAfter.match(/^model_reasoning_effort\s*=.*$/m)?.[0]).toBe(
-      codexBefore.match(/^model_reasoning_effort\s*=.*$/m)?.[0],
-    );
+    // This fork's Codex distribution inherits the user's model, provider, and
+    // authentication, so it ships no Bedrock provider block and `aidlc config`
+    // has no Codex provider surface to write. The config is left untouched.
+    expect(codexAfter).toBe(codexBefore);
+    expect(codexAfter).not.toContain("model_providers");
 
     const kiro = temp("aidlc-t294-provider-kiro-");
     cpSync(join(DIST, "kiro"), kiro, { recursive: true });

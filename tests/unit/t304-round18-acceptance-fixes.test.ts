@@ -131,6 +131,7 @@ function runWizard(
       kiro: { found: false, probed: true },
       "kiro-ide": { found: false, probed: false },
       opencode: { found: false, probed: true },
+      kimi: { found: false, probed: true },
     },
     aws: {
       hasCredentials,
