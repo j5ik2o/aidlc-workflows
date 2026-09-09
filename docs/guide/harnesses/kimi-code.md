@@ -1,7 +1,7 @@
 # Running AI-DLC on Kimi Code
 
-One of the framework's harnesses: `dist/kimi/` runs the same AI-DLC
-methodology on the Kimi Code CLI. One deterministic core
+One of the framework's harnesses: the Kimi Code distribution runs the same
+AI-DLC methodology on the Kimi Code CLI. One deterministic core
 — the tools, 33 stage files, protocols, knowledge, sensors, scopes, and rules
 — is byte-shared across every harness; only the shell (skills, agent
 files, hook wiring, activation) differs.
@@ -11,8 +11,10 @@ files, hook wiring, activation) differs.
 - **Kimi Code CLI** (`kimi --version`) — the skills/agents/hooks features this
   install relies on (`.kimi-code/skills/` slash commands, `.kimi-code/agents/`
   subagent files, user-level `[[hooks]]` in `~/.kimi-code/config.toml`)
-- **bun** on your PATH (`curl -fsSL https://bun.sh/install | bash`) — required
-  for the CLI tools and hook scripts. The `[[hooks]]` commands run `bun` from
+- **bun** only when generating or running the source/development `dist/`
+  projection. Native installs and versioned release runtimes use the
+  self-contained `aidlc` command instead. On a bun-shaped copy install, the
+  `[[hooks]]` commands run `bun` from
   the environment **Kimi Code itself was launched with** — hook commands are
   spawned by the CLI process, not by a login shell (a non-interactive bash
   reads only `$BASH_ENV`, never `~/.bashrc`). If `bun` is not on that PATH
@@ -23,38 +25,55 @@ files, hook wiring, activation) differs.
 
 ## Install
 
-The copies below come from a clone of the
-[aidlc-workflows](https://github.com/awslabs/aidlc-workflows) repository on the
-`main` branch:
+### Native channel (recommended)
 
 ```bash
-git clone --branch main https://github.com/awslabs/aidlc-workflows.git
-cd aidlc-workflows
+tmp="$(mktemp -d)"
+curl -fsSL \
+  https://github.com/awslabs/aidlc-workflows/releases/latest/download/install.sh \
+  -o "$tmp/install.sh"
+sh "$tmp/install.sh"
+rm -rf "$tmp"
+cd your-project
+aidlc config --harness kimi
+aidlc doctor
 ```
+
+`aidlc config` writes `.kimi-code/` and the `aidlc/` workspace shell, and
+reconciles the project-root `AGENTS.md` and `.gitignore` under their managed
+blocks — existing project content in those two files is preserved. Then wire
+the hooks once per machine (next section).
+
+### Versioned manual-copy alternative
+
+Download and extract a specific release's `aidlc-runtime-X.Y.Z.tar.gz` as
+described in
+[Install and Lifecycle: Copy Channel](../18-install-and-lifecycle.md#copy-channel),
+then set `RUNTIME_ROOT` to the extracted `runtime/` directory.
 
 ```bash
 mkdir -p your-project/.kimi-code your-project/aidlc
-cp -R dist/kimi/.kimi-code/. your-project/.kimi-code/
-cp -R dist/kimi/aidlc/. your-project/aidlc/    # the workspace shell (spaces/default/memory) — a sibling of .kimi-code/, not inside it
+cp -R "$RUNTIME_ROOT/kimi/.kimi-code/." your-project/.kimi-code/
+cp -R "$RUNTIME_ROOT/kimi/aidlc/."      your-project/aidlc/    # the workspace shell (spaces/default/memory) — a sibling of .kimi-code/, not inside it
 # AGENTS.md: copy only when you do not already have one — never overwrite it
 if [ ! -e your-project/AGENTS.md ]; then
-  cp dist/kimi/AGENTS.md your-project/AGENTS.md
+  cp "$RUNTIME_ROOT/kimi/AGENTS.md" your-project/AGENTS.md
 fi
 # .gitignore: copy only when you do not already have one — merge otherwise (below)
 if [ ! -e your-project/.gitignore ]; then
-  cp dist/kimi/.gitignore your-project/.gitignore
+  cp "$RUNTIME_ROOT/kimi/.gitignore" your-project/.gitignore
 fi
 ```
 
 If your project already has an `AGENTS.md`, keep it: open the shipped
-`dist/kimi/AGENTS.md` and merge its AI-DLC sections (the `## AI-DLC Method`,
+`AGENTS.md` from the release runtime and merge its AI-DLC sections (the `## AI-DLC Method`,
 `## What's different on this harness`, and git-integration blocks) into your
 own file by hand.
 
 The `aidlc/` directory is the workspace shell — it ships the pre-built
 `aidlc/spaces/default/memory/` method tree the engine reads. It is a **sibling**
-of `.kimi-code/`, so copy it separately (or copy the whole `dist/kimi/` tree at
-once). `/skill:aidlc --doctor` fails its "workspace shell ready" check if it is
+of `.kimi-code/`, so copy it separately (or copy the whole `runtime/kimi/`
+tree at once). `/skill:aidlc --doctor` fails its "workspace shell ready" check if it is
 missing.
 
 The shipped `.gitignore` carries the workspace's commit/ignore split: the
@@ -198,17 +217,17 @@ with an active workflow.
 
 ## For framework developers
 
-`dist/kimi` is **generated** from `core/` + `harness/kimi/` by
+The Kimi projection is **generated** from `core/` + `harness/kimi/` into the
+ignored local `dist/kimi/` and `dist-release/kimi/` trees by
 `bun scripts/package.ts kimi` (core copy with the `{{HARNESS_DIR}}` token
 substituted to `.kimi-code`; Kimi renames no core dir and reuses the `claude`
 tierFlavor — Kimi ignores unknown skill/agent frontmatter keys, so the claude
-projection shape loads unchanged). `bun scripts/package.ts --check` is the
-drift guard and runs in CI. The authored Kimi surfaces live in
+projection shape loads unchanged). `bun scripts/package.ts --check` builds twice in
+independent temp roots and byte-compares the results; it runs in CI. The authored Kimi surfaces live in
 `harness/kimi/`: the orchestrator skill (`skills/aidlc/`), the hook adapter
 (`hooks/aidlc-kimi-adapter.ts`), the user-level hook wiring
 (`hooks.snippet.toml`), the rules pointer doc (`rules-aidlc.md`), `mcp.json`,
-and the onboarding fills — edit those (or `core/`), never the generated
-`dist/kimi`. See
+and the onboarding fills — edit those (or `core/`), never a generated tree. See
 [Porting to a New Harness](../../harness-engineering/09-porting-to-a-new-harness.md).
 
 A live `kimi exec` journey test exists alongside the Codex and Copilot twins:
